@@ -123,7 +123,6 @@ toggleScannerBtn.addEventListener("click", ()=>{
     scannerDiv.style.display="none";
     scannerAberto=false;
   } else {
-    // fecha câmera de foto se aberta
     if(cameraAberta && cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); camera.style.display="none"; cameraAberta=false; }
     scannerDiv.style.display="block";
     Quagga.init({
@@ -152,7 +151,6 @@ toggleCameraBtn.addEventListener("click", async ()=>{
     if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); }
     cameraAberta=false;
   } else {
-    // fecha scanner se aberto
     if(scannerAberto){ Quagga.stop(); scannerDiv.style.display="none"; scannerAberto=false; }
     camera.style.display="block";
     cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode}});
@@ -161,7 +159,7 @@ toggleCameraBtn.addEventListener("click", async ()=>{
   }
 });
 
-// Tirar foto
+// Tirar foto e fechar câmera
 tirarFotoBtn.addEventListener("click", ()=>{
   if(!cameraAberta) return alert("Abra a câmera primeiro!");
   fotoCanvas.width = camera.videoWidth;
@@ -170,6 +168,11 @@ tirarFotoBtn.addEventListener("click", ()=>{
   fotoBase64 = fotoCanvas.toDataURL("image/png");
   previewFoto.src = fotoBase64;
   previewFoto.style.display = "block";
+
+  // Fecha a câmera automaticamente
+  cameraStream.getTracks().forEach(t=>t.stop());
+  camera.style.display = "none";
+  cameraAberta = false;
 });
 
 // Normalizar texto
@@ -203,13 +206,12 @@ titularInput.addEventListener("input", async ()=>{
   });
 });
 
-// S// Salvar encomenda
+// Salvar encomenda e limpar formulário
 window.salvarEncomenda = async ()=>{
   if(!titularSelecionado) return alert("Selecione um titular válido");
   if(!fotoBase64) return alert("Tire a foto da encomenda");
 
-  const codigo = Math.random().toString(36).substring(2,8).toUpperCase();
-
+  const codigo=Math.random().toString(36).substring(2,8).toUpperCase();
   await addDoc(collection(db,"encomendas"),{
     produto: produto.value,
     serie: serie.value,
@@ -223,10 +225,21 @@ window.salvarEncomenda = async ()=>{
     retiradoEm: null
   });
 
-  // Enviar WhatsApp
-  const tel = titularSelecionado.telefone.replace(/\D/g,""); // só números
-  const msg = `ENCOMENDA RECEBIDA\nProduto: ${produto.value}\nCódigo: ${codigo}`;
-  window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+  // Limpar formulário
+  produto.value = "";
+  serie.value = "";
+  titularInput.value = "";
+  listaTitulares.innerHTML = "";
+  statusTitular.textContent = "";
+  previewFoto.style.display = "none";
+  fotoBase64 = "";
+  titularSelecionado = null;
+
+  // Fechar câmera se aberta
+  if(cameraAberta && cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); camera.style.display="none"; cameraAberta=false; }
+
+  // Fechar scanner se aberto
+  if(scannerAberto){ Quagga.stop(); scannerDiv.style.display="none"; scannerAberto=false; }
 
   carregarEncomendas();
 };
