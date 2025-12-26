@@ -3,71 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <title>S4Solution | Titulares</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="css/style.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    body { background:#f4f6f9; font-family: Arial, sans-serif; }
-    header { background:#111827; color:#fff; }
-    header a { color:#fff; text-decoration:none; }
-    header a:hover { color:#60a5fa; }
-    .card { border:none; border-radius:14px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom:20px; }
-    input, button { width: 100%; margin-bottom:10px; }
-    button { border-radius:6px; }
-    .list-group-item { cursor:pointer; word-break: break-word; }
-    @media (max-width:576px) {
-      h2 { font-size:1.5rem; }
-      small { font-size:0.9rem; }
-    }
-  </style>
 </head>
+<style>
+body { background:#f4f6f9; }
+header { background:#111827; color:#fff; }
+.card { border:none; border-radius:14px; }
+#scanner { width:100%; height:260px; background:#000; display:none; }
+.list-group-item { cursor:pointer; }
+video { width:100%; border-radius:10px; }
+input { margin-bottom:10px; padding:8px; border-radius:6px; border:1px solid #ccc; width:100%; }
+button { padding:8px 12px; border-radius:6px; }
+</style>
 <body>
 
-<header class="py-2 mb-3">
-  <div class="container my-3 d-flex flex-column flex-sm-row justify-content-between align-items-center">
-    <h2 class="fw-bold mb-2 mb-sm-0">S4SOLUTION</h2>
+<header class="py-2 mb-2">
+  <div class="container my-3">
+    <h2 class="fw-bold">S4SOLUTION</h2>
     <small>Sistema de Controle de Encomendas</small>
-    <nav class="mt-2 mt-sm-0 d-flex gap-3">
-      <a href="index.html">Início</a>
-      <a href="./encomendas.html">Encomendas</a>
-      <a href="./titulares.html">Titulares</a>
-    </nav>
   </div>
+  <nav class="container mt-3 mb-2 d-flex gap-4">
+    <a href="index.html">Início</a>
+    <a href="./encomendas.html">Encomendas</a>
+    <a href="./titulares.html">Titulares</a>
+  </nav>
 </header>
 
 <main class="container">
-  <div class="card p-4">
-    <h2 class="mb-3 text-center">Cadastro de Titulares</h2>
-    <form id="formTitular">
-      <div class="mb-3">
-        <input type="text" name="nome" class="form-control" placeholder="Nome do titular" required>
-      </div>
-      <div class="mb-3 row">
-        <div class="col-6 mb-2 mb-sm-0">
-          <input type="text" name="bloco" class="form-control" placeholder="Bloco" required>
-        </div>
-        <div class="col-6">
-          <input type="number" name="casa" class="form-control" placeholder="Casa/Apt" required min="1">
-        </div>
-      </div>
-      <div class="mb-3">
-        <input type="text" id="telefone" name="telefone" class="form-control" placeholder="Telefone (somente números) - EX: 8499981122" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Salvar</button>
-    </form>
-  </div>
+  <h2>Cadastro de Titulares</h2>
 
-  <div class="card p-4">
-    <h3 class="mb-3 text-center">Lista de Titulares</h3>
-    <ul id="listaTitulares" class="list-group"></ul>
-  </div>
+  <form id="formTitular">
+    <input type="text" name="nome" placeholder="Nome do titular" required>
+    <input type="text" name="bloco" placeholder="Bloco" required>
+    <input type="number" name="casa" placeholder="Casa/Apartamento" required min="1">
+
+    <!-- Telefone simples sem toggle -->
+    <input type="text" id="telefone" name="telefone" placeholder="Telefone (somente números) - EX: 849998-1122" required>
+
+    <button type="submit">Salvar</button>
+  </form>
+
+  <h3 class="mt-4">Lista de Titulares</h3>
+  <ul id="listaTitulares" class="list-group"></ul>
 </main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/* 🔥 FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
   authDomain: "s4solution-7466a.firebaseapp.com",
@@ -85,50 +80,104 @@ const lista = document.getElementById("listaTitulares");
 const form = document.getElementById("formTitular");
 const telefoneInput = document.getElementById("telefone");
 
-/* Listar Titulares */
+/* 🔹 LISTAR TITULARES */
 async function listarTitulares() {
   lista.innerHTML = "";
   const titularesSnap = await getDocs(collection(db, "titulares"));
 
   titularesSnap.forEach(docu => {
     const t = docu.data();
+
     const li = document.createElement("li");
     li.className = "list-group-item mb-3";
     li.innerHTML = `
-      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
-        <div class="mb-2 mb-sm-0">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
           <strong>${t.nome}</strong><br>
           Bloco ${t.bloco} • Casa ${t.casa}<br>
           📞 ${t.telefone}
         </div>
-        <button class="btn btn-sm btn-danger mt-2 mt-sm-0" onclick="deletar('${docu.id}')">
-          🗑️ Excluir Titular
+        <button class="btn btn-sm btn-outline-primary">
+          Ver encomendas
         </button>
       </div>
+
+      <ul class="list-group mt-3 d-none" id="enc-${docu.id}">
+        <li class="list-group-item text-muted">Carregando...</li>
+      </ul>
+
+      <button class="btn btn-sm btn-danger mt-2"
+        onclick="deletar('${docu.id}')">
+        🗑️ Excluir Titular
+      </button>
     `;
+
+    const btn = li.querySelector("button.btn-outline-primary");
+    const listaEnc = li.querySelector(`#enc-${docu.id}`);
+
+    btn.addEventListener("click", async () => {
+      if (!listaEnc.classList.contains("d-none")) {
+        listaEnc.classList.add("d-none");
+        btn.textContent = "Ver encomendas";
+        return;
+      }
+
+      btn.textContent = "Ocultar encomendas";
+      listaEnc.classList.remove("d-none");
+      listaEnc.innerHTML = "";
+
+      const q = query(
+        collection(db, "encomendas"),
+        where("titularId", "==", docu.id),
+        where("status", "==", "Retirado")
+      );
+
+      const encSnap = await getDocs(q);
+
+      if (encSnap.empty) {
+        listaEnc.innerHTML = `<li class="list-group-item text-muted">Nenhuma encomenda retirada</li>`;
+        return;
+      }
+
+      encSnap.forEach(e => {
+        const enc = e.data();
+        listaEnc.innerHTML += `
+          <li class="list-group-item">
+            📦 <strong>${enc.produto}</strong><br>
+            📅 Retirado em: ${enc.retiradoEm ? enc.retiradoEm.toDate().toLocaleString() : "—"}
+          </li>
+        `;
+      });
+    });
+
     lista.appendChild(li);
   });
 }
 
-/* Cadastrar Titular */
+/* 🔹 CADASTRAR TITULAR com validação de número real */
 form.addEventListener("submit", async e => {
   e.preventDefault();
+
   const telefone = telefoneInput.value.trim();
+
+  // Apenas números, mínimo 10 e máximo 11 dígitos (DDD + telefone)
   if (!/^\d{10,11}$/.test(telefone)) {
     alert("Digite um número de telefone válido (somente números, 10 ou 11 dígitos).");
     return;
   }
+
   await addDoc(collection(db, "titulares"), {
     nome: form.nome.value,
     bloco: form.bloco.value,
     casa: form.casa.value,
     telefone: telefone
   });
+
   form.reset();
   listarTitulares();
 });
 
-/* Excluir Titular */
+/* 🔹 EXCLUIR TITULAR */
 window.deletar = async id => {
   await deleteDoc(doc(db, "titulares", id));
   listarTitulares();
@@ -137,6 +186,5 @@ window.deletar = async id => {
 listarTitulares();
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

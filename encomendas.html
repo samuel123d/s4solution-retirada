@@ -14,6 +14,11 @@ header { background:#111827; color:#fff; }
 #scanner { width:100%; height:260px; background:#000; display:none; }
 .list-group-item { cursor:pointer; }
 video { width:100%; border-radius:10px; }
+.encomenda-foto { width:100px; height:100px; object-fit:cover; border-radius:6px; }
+@media (max-width: 576px) {
+  .encomenda-foto { width:80px; height:80px; }
+  .list-group-item { padding:10px; }
+}
 </style>
 </head>
 
@@ -33,46 +38,32 @@ video { width:100%; border-radius:10px; }
 <main class="container">
 <div class="card shadow p-4 mb-4">
   <h5><i class="bi bi-box-seam"></i> Nova Encomenda</h5>
-
   <div class="row g-3 mt-2">
     <div class="col-md-6">
       <label class="form-label">Produto</label>
       <input id="produto" class="form-control">
     </div>
-
     <div class="col-md-6">
       <label class="form-label">Número de Série</label>
       <div class="input-group">
         <input id="serie" class="form-control">
-        <button class="btn btn-outline-secondary" onclick="abrirScanner()">
-          <i class="bi bi-upc-scan"></i>
-        </button>
       </div>
     </div>
-
-    <div class="col-12">
-      <div id="scanner"></div>
-    </div>
-
+    <div class="col-12" id="scanner"></div>
     <div class="col-md-6">
       <label class="form-label">Titular</label>
       <input id="titularInput" class="form-control" autocomplete="off">
       <div id="listaTitulares" class="list-group mt-1"></div>
       <small id="statusTitular"></small>
     </div>
-
     <div class="col-md-6">
       <label class="form-label">Foto da Encomenda</label>
-      <div class="d-flex gap-2 mb-2">
-        <button class="btn btn-outline-primary flex-fill" onclick="tirarFoto()">Tirar Foto</button>
-        <button class="btn btn-outline-secondary flex-fill" onclick="trocarCamera()">Trocar Câmera</button>
-      </div>
+      <button class="btn btn-outline-primary w-100 mb-2" onclick="tirarFoto()">Tirar Foto</button>
       <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
       <video id="camera" autoplay class="w-100 rounded"></video>
       <canvas id="fotoCanvas" style="display:none;"></canvas>
     </div>
   </div>
-
   <button class="btn btn-primary w-100 mt-4" onclick="salvarEncomenda()">Salvar Encomenda</button>
 </div>
 
@@ -86,9 +77,9 @@ video { width:100%; border-radius:10px; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase
+/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
   authDomain: "s4solution-7466a.firebaseapp.com",
@@ -101,11 +92,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Variáveis
+/* VARIÁVEIS */
 let titularSelecionado = null;
 let fotoBase64 = "";
 let cameraStream = null;
-let facingMode = "user";
+const facingMode = "environment";
 
 const camera = document.getElementById("camera");
 const fotoCanvas = document.getElementById("fotoCanvas");
@@ -113,8 +104,9 @@ const previewFoto = document.getElementById("previewFoto");
 const titularInput = document.getElementById("titularInput");
 const listaTitulares = document.getElementById("listaTitulares");
 const statusTitular = document.getElementById("statusTitular");
+const listaEncomendas = document.getElementById("listaEncomendas");
 
-// Iniciar câmera
+/* INICIAR CÂMERA AUTOMÁTICA */
 async function iniciarCamera() {
   if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
   camera.style.display = "block";
@@ -123,13 +115,7 @@ async function iniciarCamera() {
 }
 iniciarCamera();
 
-// Trocar câmera
-window.trocarCamera = () => {
-  facingMode = facingMode === "user" ? "environment" : "user";
-  iniciarCamera();
-};
-
-// Tirar foto
+/* TIRAR FOTO */
 window.tirarFoto = () => {
   fotoCanvas.width = camera.videoWidth;
   fotoCanvas.height = camera.videoHeight;
@@ -141,30 +127,35 @@ window.tirarFoto = () => {
   camera.style.display = "none";
 };
 
-// Normalizar texto
+/* NORMALIZAR TEXTO */
 function normalizarTexto(texto) {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-// Buscar titular
+/* BUSCAR TITULAR */
 titularInput.addEventListener("input", async () => {
   listaTitulares.innerHTML = "";
   titularSelecionado = null;
+
   const valorInput = normalizarTexto(titularInput.value.trim());
   if (valorInput.length < 2) return;
+
   const snap = await getDocs(collection(db, "titulares"));
   const resultados = [];
   snap.forEach(d => {
     const nomeNormalizado = normalizarTexto(d.data().nome);
     if (nomeNormalizado.includes(valorInput)) resultados.push({ id: d.id, ...d.data() });
   });
+
   if (resultados.length === 0) {
     statusTitular.textContent = "Titular não cadastrado";
     statusTitular.style.color = "red";
     return;
   }
+
   statusTitular.textContent = "Selecione um titular";
   statusTitular.style.color = "green";
+
   resultados.forEach(d => {
     const btn = document.createElement("button");
     btn.className = "list-group-item list-group-item-action";
@@ -179,41 +170,11 @@ titularInput.addEventListener("input", async () => {
   });
 });
 
-// Abrir scanner
-window.abrirScanner = () => {
-  const scannerDiv = document.getElementById("scanner");
-  scannerDiv.style.display = "block";
-  Quagga.init({
-    inputStream: {
-      name: "Live",
-      type: "LiveStream",
-      target: scannerDiv,
-      constraints: { facingMode },
-    },
-    decoder: {
-      readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"]
-    },
-  }, function(err) {
-    if (err) {
-      console.error(err);
-      alert("Erro ao iniciar o scanner");
-      return;
-    }
-    Quagga.start();
-  });
-  Quagga.onDetected((result) => {
-    if (result && result.codeResult && result.codeResult.code) {
-      document.getElementById("serie").value = result.codeResult.code;
-      Quagga.stop();
-      scannerDiv.style.display = "none";
-    }
-  });
-};
-
-// Salvar encomenda
+/* SALVAR ENCOMENDA */
 window.salvarEncomenda = async () => {
   if (!titularSelecionado) return alert("Selecione um titular válido");
   if (!fotoBase64) return alert("Tire a foto da encomenda");
+
   const codigo = Math.random().toString(36).substring(2, 8).toUpperCase();
   await addDoc(collection(db, "encomendas"), {
     produto: produto.value,
@@ -227,52 +188,52 @@ window.salvarEncomenda = async () => {
     criadoEm: new Date(),
     retiradoEm: null
   });
-  enviarWhatsApp(codigo);
+
   carregarEncomendas();
 };
 
-// Enviar WhatsApp
-function enviarWhatsApp(codigo) {
-  const tel = titularSelecionado.telefone.replace(/\D/g, "");
-  const msg = `ENCOMENDA RECEBIDA\nProduto: ${produto.value}\nCódigo: ${codigo}`;
-  window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank");
-}
-
-// Listar encomendas
+/* LISTAR ENCOMENDAS */
 async function carregarEncomendas() {
   listaEncomendas.innerHTML = "";
   const snap = await getDocs(collection(db, "encomendas"));
+
   snap.forEach(d => {
     const e = d.data();
     const dataRecebimento = e.criadoEm ? e.criadoEm.toDate().toLocaleString() : "—";
     const dataRetirada = e.retiradoEm ? e.retiradoEm.toDate().toLocaleString() : null;
+
     const li = document.createElement("li");
     li.className = "list-group-item";
     li.innerHTML = `
-      <b>${e.produto}</b><br>
-      Titular: ${e.titularNome}<br>
-      Recebido em: ${dataRecebimento}<br>
-      Status: ${e.status}<br>
-      ${
-        e.status === "Aguardando retirada"
-          ? `<input class="form-control mt-2" id="c${d.id}" placeholder="Código">
-             <button class="btn btn-success btn-sm mt-2" onclick="validar('${d.id}','${e.codigo}')">Validar</button>`
-          : `Retirado em: ${dataRetirada}`
-      }
-      <button class="btn btn-danger btn-sm mt-2" onclick="excluir('${d.id}')">Excluir</button>
+      <div class="d-flex flex-column flex-md-row align-items-start gap-3">
+        <img src="${e.foto}" class="encomenda-foto" alt="Foto Encomenda">
+        <div class="flex-fill">
+          <b>${e.produto}</b><br>
+          Titular: ${e.titularNome}<br>
+          Recebido em: ${dataRecebimento}<br>
+          Status: ${e.status}<br>
+          ${
+            e.status === "Aguardando retirada"
+              ? `<input class="form-control mt-2" id="c${d.id}" placeholder="Código">
+                 <button class="btn btn-success btn-sm mt-2" onclick="validar('${d.id}','${e.codigo}')">Validar</button>`
+              : `Retirado em: ${dataRetirada}`
+          }
+          <button class="btn btn-danger btn-sm mt-2" onclick="excluir('${d.id}')">Excluir</button>
+        </div>
+      </div>
     `;
     listaEncomendas.appendChild(li);
   });
 }
 
-// Validar retirada
+/* VALIDAR RETIRADA */
 window.validar = async (id, codigo) => {
   if (document.getElementById("c" + id).value !== codigo) return alert("Código inválido");
   await updateDoc(doc(db, "encomendas", id), { status: "Retirado", retiradoEm: new Date() });
   carregarEncomendas();
 };
 
-// Excluir
+/* EXCLUIR */
 window.excluir = async id => {
   await deleteDoc(doc(db, "encomendas", id));
   carregarEncomendas();
