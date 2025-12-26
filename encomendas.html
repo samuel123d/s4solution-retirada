@@ -148,23 +148,33 @@ window.tirarFoto = () => {
 
   camera.style.display = "none";
 };
-
-/* 🔍 BUSCAR TITULAR */
+function normalizarTexto(texto) {
+  return texto
+    .normalize("NFD")        // Decompor acentos
+    .replace(/[\u0300-\u036f]/g, "") // Remover acentos
+    .toLowerCase();           // Converter para minúsculo
+}
+// 🔍 BUSCAR TITULAR
 titularInput.addEventListener("input", async () => {
   listaTitulares.innerHTML = "";
   titularSelecionado = null;
 
-  if (titularInput.value.length < 2) return;
+  const valorInput = normalizarTexto(titularInput.value.trim());
+  if (valorInput.length < 2) return;
 
-  const q = query(
-    collection(db, "titulares"),
-    where("nome", ">=", titularInput.value),
-    where("nome", "<=", titularInput.value + "\uf8ff")
-  );
+  // Buscar todos os titulares (Firestore não tem "contains" com case-insensitive)
+  const snap = await getDocs(collection(db, "titulares"));
 
-  const snap = await getDocs(q);
+  // Filtrar localmente com normalização
+  const resultados = [];
+  snap.forEach(d => {
+    const nomeNormalizado = normalizarTexto(d.data().nome);
+    if (nomeNormalizado.includes(valorInput)) {
+      resultados.push({ id: d.id, ...d.data() });
+    }
+  });
 
-  if (snap.empty) {
+  if (resultados.length === 0) {
     statusTitular.textContent = "❌ Titular não cadastrado";
     statusTitular.style.color = "red";
     return;
@@ -173,13 +183,13 @@ titularInput.addEventListener("input", async () => {
   statusTitular.textContent = "✔️ Selecione um titular";
   statusTitular.style.color = "green";
 
-  snap.forEach(d => {
+  resultados.forEach(d => {
     const btn = document.createElement("button");
     btn.className = "list-group-item list-group-item-action";
-    btn.textContent = d.data().nome;
+    btn.textContent = d.nome;
     btn.onclick = () => {
-      titularSelecionado = { id: d.id, ...d.data() };
-      titularInput.value = d.data().nome;
+      titularSelecionado = { id: d.id, ...d };
+      titularInput.value = d.nome;
       listaTitulares.innerHTML = "";
       statusTitular.textContent = "✔️ Titular selecionado";
     };
