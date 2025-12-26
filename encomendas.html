@@ -4,11 +4,9 @@
 <meta charset="UTF-8">
 <title>S4SOLUTION • Encomendas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
- <link rel="stylesheet" href="css/style.css">
-
+<link rel="stylesheet" href="css/style.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-
 <style>
 body { background:#f4f6f9; }
 header { background:#111827; color:#fff; }
@@ -20,22 +18,19 @@ video { width:100%; border-radius:10px; }
 </head>
 
 <body>
-
-
-<header class="py-2 mb-2" style="position: relative;">
+<header class="py-2 mb-2">
   <div class="container my-3">
     <h2 class="fw-bold">S4SOLUTION</h2>
     <small>Sistema de Controle de Encomendas</small>
   </div>
-  <nav class="container mt-3 mb-2 d-flex gap-4" >
-  <a href="index.html">Início</a>
-  <a href="./encomendas.html">Encomendas</a>
-  <a href="./titulares.html">Titulares</a>
-</nav>
+  <nav class="container mt-3 mb-2 d-flex gap-4">
+    <a href="index.html">Início</a>
+    <a href="./encomendas.html">Encomendas</a>
+    <a href="./titulares.html">Titulares</a>
+  </nav>
 </header>
 
 <main class="container">
-
 <!-- CADASTRO -->
 <div class="card shadow p-4 mb-4">
   <h5><i class="bi bi-box-seam"></i> Nova Encomenda</h5>
@@ -67,24 +62,19 @@ video { width:100%; border-radius:10px; }
       <small id="statusTitular"></small>
     </div>
 
-   <div class="col-md-6">
-  <label class="form-label">Foto da Encomenda</label>
-
-  <button class="btn btn-outline-primary w-100 mb-2" onclick="tirarFoto()">
-    📸 Tirar Foto
-  </button>
-
-  <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
-
-  <video id="camera" autoplay class="w-100 rounded"></video>
-
-  <canvas id="fotoCanvas" style="display:none;"></canvas>
-</div>
+    <div class="col-md-6">
+      <label class="form-label">Foto da Encomenda</label>
+      <div class="d-flex gap-2 mb-2">
+        <button class="btn btn-outline-primary flex-fill" onclick="tirarFoto()">📸 Tirar Foto</button>
+        <button class="btn btn-outline-secondary flex-fill" onclick="trocarCamera()">🔄 Trocar Câmera</button>
+      </div>
+      <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
+      <video id="camera" autoplay class="w-100 rounded"></video>
+      <canvas id="fotoCanvas" style="display:none;"></canvas>
+    </div>
   </div>
 
-  <button class="btn btn-primary w-100 mt-4" onclick="salvarEncomenda()">
-    Salvar Encomenda
-  </button>
+  <button class="btn btn-primary w-100 mt-4" onclick="salvarEncomenda()">Salvar Encomenda</button>
 </div>
 
 <!-- LISTA -->
@@ -92,24 +82,13 @@ video { width:100%; border-radius:10px; }
   <h5><i class="bi bi-list"></i> Encomendas</h5>
   <ul id="listaEncomendas" class="list-group mt-3"></ul>
 </div>
-
 </main>
 
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  deleteDoc,
-  doc,
-  updateDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* 🔥 FIREBASE */
 const firebaseConfig = {
@@ -127,34 +106,50 @@ const db = getFirestore(app);
 /* 🔧 VARIÁVEIS */
 let titularSelecionado = null;
 let fotoBase64 = "";
+let cameraStream = null;
+let facingMode = "user"; // "user" = frontal, "environment" = traseira
 
-/* 📸 CAMERA */
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => camera.srcObject = stream);
+const camera = document.getElementById("camera");
+const fotoCanvas = document.getElementById("fotoCanvas");
+const previewFoto = document.getElementById("previewFoto");
+const titularInput = document.getElementById("titularInput");
+const listaTitulares = document.getElementById("listaTitulares");
+const statusTitular = document.getElementById("statusTitular");
+
+/* 📸 INICIAR CÂMERA */
+async function iniciarCamera() {
+  if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+  camera.style.display = "block";
+  cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+  camera.srcObject = cameraStream;
+}
+iniciarCamera();
+
+/* 🔄 TROCAR CÂMERA */
+window.trocarCamera = () => {
+  facingMode = facingMode === "user" ? "environment" : "user";
+  iniciarCamera();
+};
 
 /* 📷 TIRAR FOTO */
 window.tirarFoto = () => {
   fotoCanvas.width = camera.videoWidth;
   fotoCanvas.height = camera.videoHeight;
-
   fotoCanvas.getContext("2d").drawImage(camera, 0, 0);
   fotoBase64 = fotoCanvas.toDataURL("image/png");
-
   previewFoto.src = fotoBase64;
   previewFoto.style.display = "block";
 
-  const stream = camera.srcObject;
-  if (stream) stream.getTracks().forEach(t => t.stop());
-
+  if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
   camera.style.display = "none";
 };
+
+/* 🔍 NORMALIZAÇÃO DE TEXTO */
 function normalizarTexto(texto) {
-  return texto
-    .normalize("NFD")        // Decompor acentos
-    .replace(/[\u0300-\u036f]/g, "") // Remover acentos
-    .toLowerCase();           // Converter para minúsculo
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
-// 🔍 BUSCAR TITULAR
+
+/* 🔍 BUSCAR TITULAR */
 titularInput.addEventListener("input", async () => {
   listaTitulares.innerHTML = "";
   titularSelecionado = null;
@@ -162,16 +157,11 @@ titularInput.addEventListener("input", async () => {
   const valorInput = normalizarTexto(titularInput.value.trim());
   if (valorInput.length < 2) return;
 
-  // Buscar todos os titulares (Firestore não tem "contains" com case-insensitive)
   const snap = await getDocs(collection(db, "titulares"));
-
-  // Filtrar localmente com normalização
   const resultados = [];
   snap.forEach(d => {
     const nomeNormalizado = normalizarTexto(d.data().nome);
-    if (nomeNormalizado.includes(valorInput)) {
-      resultados.push({ id: d.id, ...d.data() });
-    }
+    if (nomeNormalizado.includes(valorInput)) resultados.push({ id: d.id, ...d.data() });
   });
 
   if (resultados.length === 0) {
@@ -208,12 +198,9 @@ window.salvarEncomenda = async () => {
     produto: produto.value,
     serie: serie.value,
     foto: fotoBase64,
-
-    // 🔥 RELACIONAMENTO CORRETO
     titularId: titularSelecionado.id,
     titularNome: titularSelecionado.nome,
     titularTelefone: titularSelecionado.telefone,
-
     codigo,
     status: "Aguardando retirada",
     criadoEm: new Date(),
@@ -227,14 +214,8 @@ window.salvarEncomenda = async () => {
 /* 📲 WHATSAPP */
 function enviarWhatsApp(codigo) {
   const tel = titularSelecionado.telefone.replace(/\D/g, "");
-  const msg = `📦 ENCOMENDA RECEBIDA
-Produto: ${produto.value}
-🔐 Código: ${codigo}`;
-
-  window.open(
-    `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`,
-    "_blank"
-  );
+  const msg = `📦 ENCOMENDA RECEBIDA\nProduto: ${produto.value}\n🔐 Código: ${codigo}`;
+  window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
 /* 📋 LISTAR ENCOMENDAS */
@@ -244,61 +225,32 @@ async function carregarEncomendas() {
 
   snap.forEach(d => {
     const e = d.data();
-
-    const dataRecebimento = e.criadoEm
-      ? e.criadoEm.toDate().toLocaleString()
-      : "—";
-
-    const dataRetirada = e.retiradoEm
-      ? e.retiradoEm.toDate().toLocaleString()
-      : null;
+    const dataRecebimento = e.criadoEm ? e.criadoEm.toDate().toLocaleString() : "—";
+    const dataRetirada = e.retiradoEm ? e.retiradoEm.toDate().toLocaleString() : null;
 
     const li = document.createElement("li");
     li.className = "list-group-item";
-
     li.innerHTML = `
       <b>${e.produto}</b><br>
       Titular: ${e.titularNome}<br>
-
       📥 Recebido em: ${dataRecebimento}<br>
       📌 Status: ${e.status}<br>
-
       ${
         e.status === "Aguardando retirada"
-          ? `
-            <input class="form-control mt-2" id="c${d.id}" placeholder="Código">
-            <button class="btn btn-success btn-sm mt-2"
-              onclick="validar('${d.id}','${e.codigo}')">
-              Validar
-            </button>
-          `
-          : `
-            ✅ Retirado em: ${dataRetirada}
-          `
+          ? `<input class="form-control mt-2" id="c${d.id}" placeholder="Código">
+             <button class="btn btn-success btn-sm mt-2" onclick="validar('${d.id}','${e.codigo}')">Validar</button>`
+          : `✅ Retirado em: ${dataRetirada}`
       }
-
-      <!-- 🔴 BOTÃO EXCLUIR SEMPRE VISÍVEL -->
-      <button class="btn btn-danger btn-sm mt-2"
-        onclick="excluir('${d.id}')">
-        Excluir
-      </button>
+      <button class="btn btn-danger btn-sm mt-2" onclick="excluir('${d.id}')">Excluir</button>
     `;
-
     listaEncomendas.appendChild(li);
   });
 }
 
-
 /* ✅ VALIDAR RETIRADA */
 window.validar = async (id, codigo) => {
-  if (document.getElementById("c" + id).value !== codigo)
-    return alert("Código inválido");
-
-  await updateDoc(doc(db, "encomendas", id), {
-    status: "Retirado",
-    retiradoEm: new Date()
-  });
-
+  if (document.getElementById("c" + id).value !== codigo) return alert("Código inválido");
+  await updateDoc(doc(db, "encomendas", id), { status: "Retirado", retiradoEm: new Date() });
   carregarEncomendas();
 };
 
@@ -310,7 +262,5 @@ window.excluir = async id => {
 
 carregarEncomendas();
 </script>
-
-
 </body>
 </html>
