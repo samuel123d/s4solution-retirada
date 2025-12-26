@@ -169,7 +169,6 @@ tirarFotoBtn.addEventListener("click", ()=>{
   previewFoto.src = fotoBase64;
   previewFoto.style.display = "block";
 
-  // Fecha a câmera automaticamente
   cameraStream.getTracks().forEach(t=>t.stop());
   camera.style.display = "none";
   cameraAberta = false;
@@ -213,14 +212,15 @@ window.salvarEncomenda = async ()=>{
 
   const codigo=Math.random().toString(36).substring(2,8).toUpperCase();
   const produtoVal = produto.value;
+  const titularVal = titularSelecionado; // salvar antes de limpar
 
   await addDoc(collection(db,"encomendas"),{
     produto: produtoVal,
     serie: serie.value,
     foto: fotoBase64,
-    titularId: titularSelecionado.id,
-    titularNome: titularSelecionado.nome,
-    titularTelefone: titularSelecionado.telefone,
+    titularId: titularVal.id,
+    titularNome: titularVal.nome,
+    titularTelefone: titularVal.telefone,
     codigo,
     status: "Aguardando retirada",
     criadoEm: new Date(),
@@ -245,12 +245,10 @@ window.salvarEncomenda = async ()=>{
 
   carregarEncomendas();
 
-  // Abrir WhatsApp
-  if(titularSelecionado && titularSelecionado.telefone){
-    const mensagem = encodeURIComponent(
-      `Olá, ${titularSelecionado.nome}!\nSua encomenda de ${produtoVal} foi registrada.\nCódigo: ${codigo}`
-    );
-    const numeroWhatsApp = titularSelecionado.telefone; // Ex: "5511999999999"
+  // Abrir WhatsApp com código
+  if(titularVal && titularVal.telefone){
+    const mensagem = encodeURIComponent(`Olá, ${titularVal.nome}!\nSua encomenda de ${produtoVal} foi registrada.\nCódigo: ${codigo}`);
+    const numeroWhatsApp = titularVal.telefone; // ex: 5511999999999
     window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, "_blank");
   }
 };
