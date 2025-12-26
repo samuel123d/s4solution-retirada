@@ -203,23 +203,31 @@ titularInput.addEventListener("input", async ()=>{
   });
 });
 
-// Salvar encomenda
+// S// Salvar encomenda
 window.salvarEncomenda = async ()=>{
   if(!titularSelecionado) return alert("Selecione um titular válido");
   if(!fotoBase64) return alert("Tire a foto da encomenda");
-  const codigo=Math.random().toString(36).substring(2,8).toUpperCase();
+
+  const codigo = Math.random().toString(36).substring(2,8).toUpperCase();
+
   await addDoc(collection(db,"encomendas"),{
-    produto:produto.value,
-    serie:serie.value,
-    foto:fotoBase64,
-    titularId:titularSelecionado.id,
-    titularNome:titularSelecionado.nome,
-    titularTelefone:titularSelecionado.telefone,
+    produto: produto.value,
+    serie: serie.value,
+    foto: fotoBase64,
+    titularId: titularSelecionado.id,
+    titularNome: titularSelecionado.nome,
+    titularTelefone: titularSelecionado.telefone,
     codigo,
-    status:"Aguardando retirada",
-    criadoEm:new Date(),
-    retiradoEm:null
+    status: "Aguardando retirada",
+    criadoEm: new Date(),
+    retiradoEm: null
   });
+
+  // Enviar WhatsApp
+  const tel = titularSelecionado.telefone.replace(/\D/g,""); // só números
+  const msg = `ENCOMENDA RECEBIDA\nProduto: ${produto.value}\nCódigo: ${codigo}`;
+  window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+
   carregarEncomendas();
 };
 
