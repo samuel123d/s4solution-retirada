@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>S4SOLUTION • Encomendas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="stylesheet" href="css/style.css">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+<style>
+body { background:#f4f6f9; }
+header { background:#111827; color:#fff; }
+.card { border:none; border-radius:14px; }
+#scanner { width:100%; height:260px; background:#000; display:none; }
+.list-group-item { cursor:pointer; }
+video { width:100%; border-radius:10px; }
+</style>
+</head>
+
+<body>
+
+
+<header class="py-2 mb-2" style="position: relative;">
+  <div class="container my-3">
+    <h2 class="fw-bold">S4SOLUTION</h2>
+    <small>Sistema de Controle de Encomendas</small>
+  </div>
+  <nav class="container mt-3 mb-2 d-flex gap-4" >
+  <a href="index.html">Início</a>
+  <a href="./encomendas.html">Encomendas</a>
+  <a href="./titulares.html">Titulares</a>
+</nav>
+</header>
+
+<main class="container">
+
+<!-- CADASTRO -->
+<div class="card shadow p-4 mb-4">
+  <h5><i class="bi bi-box-seam"></i> Nova Encomenda</h5>
+
+  <div class="row g-3 mt-2">
+    <div class="col-md-6">
+      <label class="form-label">Produto</label>
+      <input id="produto" class="form-control">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Número de Série</label>
+      <div class="input-group">
+        <input id="serie" class="form-control">
+        <button class="btn btn-outline-secondary" onclick="abrirScanner()">
+          <i class="bi bi-upc-scan"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div id="scanner"></div>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Titular</label>
+      <input id="titularInput" class="form-control" autocomplete="off">
+      <div id="listaTitulares" class="list-group mt-1"></div>
+      <small id="statusTitular"></small>
+    </div>
+
+   <div class="col-md-6">
+  <label class="form-label">Foto da Encomenda</label>
+
+  <button class="btn btn-outline-primary w-100 mb-2" onclick="tirarFoto()">
+    📸 Tirar Foto
+  </button>
+
+  <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
+
+  <video id="camera" autoplay class="w-100 rounded"></video>
+
+  <canvas id="fotoCanvas" style="display:none;"></canvas>
+</div>
+  </div>
+
+  <button class="btn btn-primary w-100 mt-4" onclick="salvarEncomenda()">
+    Salvar Encomenda
+  </button>
+</div>
+
+<!-- LISTA -->
+<div class="card shadow p-4">
+  <h5><i class="bi bi-list"></i> Encomendas</h5>
+  <ul id="listaEncomendas" class="list-group mt-3"></ul>
+</div>
+
+</main>
+
+<script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* 🔥 FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
+  authDomain: "s4solution-7466a.firebaseapp.com",
+  projectId: "s4solution-7466a",
+  storageBucket: "s4solution-7466a.firebasestorage.app",
+  messagingSenderId: "365611705854",
+  appId: "1:365611705854:web:054b6de3849793b1294caf",
+  measurementId: "G-HEP3WV471B"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* 🔧 VARIÁVEIS */
+let titularSelecionado = null;
+let fotoBase64 = "";
+
+/* 📸 CAMERA */
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => camera.srcObject = stream);
+
+/* 📷 TIRAR FOTO */
+window.tirarFoto = () => {
+  fotoCanvas.width = camera.videoWidth;
+  fotoCanvas.height = camera.videoHeight;
+
+  fotoCanvas.getContext("2d").drawImage(camera, 0, 0);
+  fotoBase64 = fotoCanvas.toDataURL("image/png");
+
+  previewFoto.src = fotoBase64;
+  previewFoto.style.display = "block";
+
+  const stream = camera.srcObject;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+
+  camera.style.display = "none";
+};
+
+/* 🔍 BUSCAR TITULAR */
+titularInput.addEventListener("input", async () => {
+  listaTitulares.innerHTML = "";
+  titularSelecionado = null;
+
+  if (titularInput.value.length < 2) return;
+
+  const q = query(
+    collection(db, "titulares"),
+    where("nome", ">=", titularInput.value),
+    where("nome", "<=", titularInput.value + "\uf8ff")
+  );
+
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    statusTitular.textContent = "❌ Titular não cadastrado";
+    statusTitular.style.color = "red";
+    return;
+  }
+
+  statusTitular.textContent = "✔️ Selecione um titular";
+  statusTitular.style.color = "green";
+
+  snap.forEach(d => {
+    const btn = document.createElement("button");
+    btn.className = "list-group-item list-group-item-action";
+    btn.textContent = d.data().nome;
+    btn.onclick = () => {
+      titularSelecionado = { id: d.id, ...d.data() };
+      titularInput.value = d.data().nome;
+      listaTitulares.innerHTML = "";
+      statusTitular.textContent = "✔️ Titular selecionado";
+    };
+    listaTitulares.appendChild(btn);
+  });
+});
+
+/* 💾 SALVAR ENCOMENDA */
+window.salvarEncomenda = async () => {
+  if (!titularSelecionado) return alert("Selecione um titular válido");
+  if (!fotoBase64) return alert("Tire a foto da encomenda");
+
+  const codigo = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  await addDoc(collection(db, "encomendas"), {
+    produto: produto.value,
+    serie: serie.value,
+    foto: fotoBase64,
+
+    // 🔥 RELACIONAMENTO CORRETO
+    titularId: titularSelecionado.id,
+    titularNome: titularSelecionado.nome,
+    titularTelefone: titularSelecionado.telefone,
+
+    codigo,
+    status: "Aguardando retirada",
+    criadoEm: new Date(),
+    retiradoEm: null
+  });
+
+  enviarWhatsApp(codigo);
+  carregarEncomendas();
+};
+
+/* 📲 WHATSAPP */
+function enviarWhatsApp(codigo) {
+  const tel = titularSelecionado.telefone.replace(/\D/g, "");
+  const msg = `📦 ENCOMENDA RECEBIDA
+Produto: ${produto.value}
+🔐 Código: ${codigo}`;
+
+  window.open(
+    `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`,
+    "_blank"
+  );
+}
+
+/* 📋 LISTAR ENCOMENDAS */
+async function carregarEncomendas() {
+  listaEncomendas.innerHTML = "";
+  const snap = await getDocs(collection(db, "encomendas"));
+
+  snap.forEach(d => {
+    const e = d.data();
+
+    const dataRecebimento = e.criadoEm
+      ? e.criadoEm.toDate().toLocaleString()
+      : "—";
+
+    const dataRetirada = e.retiradoEm
+      ? e.retiradoEm.toDate().toLocaleString()
+      : null;
+
+    const li = document.createElement("li");
+    li.className = "list-group-item";
+
+    li.innerHTML = `
+      <b>${e.produto}</b><br>
+      Titular: ${e.titularNome}<br>
+
+      📥 Recebido em: ${dataRecebimento}<br>
+      📌 Status: ${e.status}<br>
+
+      ${
+        e.status === "Aguardando retirada"
+          ? `
+            <input class="form-control mt-2" id="c${d.id}" placeholder="Código">
+            <button class="btn btn-success btn-sm mt-2"
+              onclick="validar('${d.id}','${e.codigo}')">
+              Validar
+            </button>
+          `
+          : `
+            ✅ Retirado em: ${dataRetirada}
+          `
+      }
+
+      <!-- 🔴 BOTÃO EXCLUIR SEMPRE VISÍVEL -->
+      <button class="btn btn-danger btn-sm mt-2"
+        onclick="excluir('${d.id}')">
+        Excluir
+      </button>
+    `;
+
+    listaEncomendas.appendChild(li);
+  });
+}
+
+
+/* ✅ VALIDAR RETIRADA */
+window.validar = async (id, codigo) => {
+  if (document.getElementById("c" + id).value !== codigo)
+    return alert("Código inválido");
+
+  await updateDoc(doc(db, "encomendas", id), {
+    status: "Retirado",
+    retiradoEm: new Date()
+  });
+
+  carregarEncomendas();
+};
+
+/* 🗑 EXCLUIR */
+window.excluir = async id => {
+  await deleteDoc(doc(db, "encomendas", id));
+  carregarEncomendas();
+};
+
+carregarEncomendas();
+</script>
+
+
+</body>
+</html>

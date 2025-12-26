@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>S4Solution | Titulares</title>
+  <link rel="stylesheet" href="css/style.css">
+  
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<style>
+body { background:#f4f6f9; }
+header { background:#111827; color:#fff; }
+.card { border:none; border-radius:14px; }
+#scanner { width:100%; height:260px; background:#000; display:none; }
+.list-group-item { cursor:pointer; }
+video { width:100%; border-radius:10px; }
+</style>
+<body>
+  
+
+<header class="py-2 mb-2" style="position: relative
+;">
+  <div class="container my-3">
+    <h2 class="fw-bold">S4SOLUTION</h2>
+    <small>Sistema de Controle de Encomendas</small>
+  </div>
+  <nav class="container mt-3 mb-2 d-flex gap-4" >
+  <a href="index.html">Início</a>
+  <a href="./encomendas.html">Encomendas</a>
+  <a href="./titulares.html">Titulares</a>
+</nav>
+</header>
+<main>
+  <h2>Cadastro de Titulares</h2>
+
+  <form id="formTitular">
+    <input type="text" name="nome" placeholder="Nome do titular" required>
+    <input type="text" name="bloco" placeholder="Bloco" required>
+    <input type="text" name="casa" placeholder="Casa/Apartamento" required>
+    <input type="text" name="telefone" placeholder="Telefone" required>
+    <button type="submit">Salvar</button>
+  </form>
+
+  <h3>Lista de Titulares</h3>
+  <ul id="listaTitulares"></ul>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* 🔥 FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
+  authDomain: "s4solution-7466a.firebaseapp.com",
+  projectId: "s4solution-7466a",
+  storageBucket: "s4solution-7466a.firebasestorage.app",
+  messagingSenderId: "365611705854",
+  appId: "1:365611705854:web:054b6de3849793b1294caf",
+  measurementId: "G-HEP3WV471B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const lista = document.getElementById("listaTitulares");
+const form = document.getElementById("formTitular");
+
+/* 🔹 LISTAR TITULARES */
+async function listarTitulares() {
+  lista.innerHTML = "";
+
+  const titularesSnap = await getDocs(collection(db, "titulares"));
+
+  titularesSnap.forEach(docu => {
+    const t = docu.data();
+
+    const li = document.createElement("li");
+    li.className = "list-group-item mb-3";
+    li.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong>${t.nome}</strong><br>
+          Bloco ${t.bloco} • Casa ${t.casa}<br>
+          📞 ${t.telefone}
+        </div>
+        <button class="btn btn-sm btn-outline-primary">
+          Ver encomendas
+        </button>
+      </div>
+
+      <ul class="list-group mt-3 d-none" id="enc-${docu.id}">
+        <li class="list-group-item text-muted">
+          Carregando...
+        </li>
+      </ul>
+
+      <button class="btn btn-sm btn-danger mt-2"
+        onclick="deletar('${docu.id}')">
+        🗑️ Excluir Titular
+      </button>
+    `;
+
+    const btn = li.querySelector("button.btn-outline-primary");
+    const listaEnc = li.querySelector(`#enc-${docu.id}`);
+
+    btn.addEventListener("click", async () => {
+      // Toggle
+      if (!listaEnc.classList.contains("d-none")) {
+        listaEnc.classList.add("d-none");
+        btn.textContent = "Ver encomendas";
+        return;
+      }
+
+      btn.textContent = "Ocultar encomendas";
+      listaEnc.classList.remove("d-none");
+      listaEnc.innerHTML = "";
+
+      const q = query(
+        collection(db, "encomendas"),
+        where("titularId", "==", docu.id),
+        where("status", "==", "Retirado")
+      );
+
+      const encSnap = await getDocs(q);
+
+      if (encSnap.empty) {
+        listaEnc.innerHTML = `
+          <li class="list-group-item text-muted">
+            Nenhuma encomenda retirada
+          </li>
+        `;
+        return;
+      }
+
+      encSnap.forEach(e => {
+        const enc = e.data();
+        listaEnc.innerHTML += `
+          <li class="list-group-item">
+            📦 <strong>${enc.produto}</strong><br>
+            📅 Retirado em:
+            ${enc.retiradoEm
+              ? enc.retiradoEm.toDate().toLocaleString()
+              : "—"}
+          </li>
+        `;
+      });
+    });
+
+    lista.appendChild(li);
+  });
+}
+
+/* 🔹 CADASTRAR TITULAR */
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+
+  await addDoc(collection(db, "titulares"), {
+    nome: form.nome.value,
+    bloco: form.bloco.value,
+    casa: form.casa.value,
+    telefone: form.telefone.value
+  });
+
+  form.reset();
+  listarTitulares();
+});
+
+/* 🔹 EXCLUIR TITULAR */
+window.deletar = async id => {
+  await deleteDoc(doc(db, "titulares", id));
+  listarTitulares();
+};
+
+listarTitulares();
+</script>
+
+
+</body>
+</html>
