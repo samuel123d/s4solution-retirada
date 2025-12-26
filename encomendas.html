@@ -31,7 +31,6 @@ video { width:100%; border-radius:10px; }
 </header>
 
 <main class="container">
-<!-- CADASTRO -->
 <div class="card shadow p-4 mb-4">
   <h5><i class="bi bi-box-seam"></i> Nova Encomenda</h5>
 
@@ -65,8 +64,8 @@ video { width:100%; border-radius:10px; }
     <div class="col-md-6">
       <label class="form-label">Foto da Encomenda</label>
       <div class="d-flex gap-2 mb-2">
-        <button class="btn btn-outline-primary flex-fill" onclick="tirarFoto()">📸 Tirar Foto</button>
-        <button class="btn btn-outline-secondary flex-fill" onclick="trocarCamera()">🔄 Trocar Câmera</button>
+        <button class="btn btn-outline-primary flex-fill" onclick="tirarFoto()">Tirar Foto</button>
+        <button class="btn btn-outline-secondary flex-fill" onclick="trocarCamera()">Trocar Câmera</button>
       </div>
       <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
       <video id="camera" autoplay class="w-100 rounded"></video>
@@ -77,7 +76,6 @@ video { width:100%; border-radius:10px; }
   <button class="btn btn-primary w-100 mt-4" onclick="salvarEncomenda()">Salvar Encomenda</button>
 </div>
 
-<!-- LISTA -->
 <div class="card shadow p-4">
   <h5><i class="bi bi-list"></i> Encomendas</h5>
   <ul id="listaEncomendas" class="list-group mt-3"></ul>
@@ -90,7 +88,7 @@ video { width:100%; border-radius:10px; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* 🔥 FIREBASE */
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
   authDomain: "s4solution-7466a.firebaseapp.com",
@@ -103,11 +101,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* 🔧 VARIÁVEIS */
+// Variáveis
 let titularSelecionado = null;
 let fotoBase64 = "";
 let cameraStream = null;
-let facingMode = "user"; // "user" = frontal, "environment" = traseira
+let facingMode = "user";
 
 const camera = document.getElementById("camera");
 const fotoCanvas = document.getElementById("fotoCanvas");
@@ -116,7 +114,7 @@ const titularInput = document.getElementById("titularInput");
 const listaTitulares = document.getElementById("listaTitulares");
 const statusTitular = document.getElementById("statusTitular");
 
-/* 📸 INICIAR CÂMERA */
+// Iniciar câmera
 async function iniciarCamera() {
   if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
   camera.style.display = "block";
@@ -125,13 +123,13 @@ async function iniciarCamera() {
 }
 iniciarCamera();
 
-/* 🔄 TROCAR CÂMERA */
+// Trocar câmera
 window.trocarCamera = () => {
   facingMode = facingMode === "user" ? "environment" : "user";
   iniciarCamera();
 };
 
-/* 📷 TIRAR FOTO */
+// Tirar foto
 window.tirarFoto = () => {
   fotoCanvas.width = camera.videoWidth;
   fotoCanvas.height = camera.videoHeight;
@@ -139,40 +137,34 @@ window.tirarFoto = () => {
   fotoBase64 = fotoCanvas.toDataURL("image/png");
   previewFoto.src = fotoBase64;
   previewFoto.style.display = "block";
-
   if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
   camera.style.display = "none";
 };
 
-/* 🔍 NORMALIZAÇÃO DE TEXTO */
+// Normalizar texto
 function normalizarTexto(texto) {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-/* 🔍 BUSCAR TITULAR */
+// Buscar titular
 titularInput.addEventListener("input", async () => {
   listaTitulares.innerHTML = "";
   titularSelecionado = null;
-
   const valorInput = normalizarTexto(titularInput.value.trim());
   if (valorInput.length < 2) return;
-
   const snap = await getDocs(collection(db, "titulares"));
   const resultados = [];
   snap.forEach(d => {
     const nomeNormalizado = normalizarTexto(d.data().nome);
     if (nomeNormalizado.includes(valorInput)) resultados.push({ id: d.id, ...d.data() });
   });
-
   if (resultados.length === 0) {
-    statusTitular.textContent = "❌ Titular não cadastrado";
+    statusTitular.textContent = "Titular não cadastrado";
     statusTitular.style.color = "red";
     return;
   }
-
-  statusTitular.textContent = "✔️ Selecione um titular";
+  statusTitular.textContent = "Selecione um titular";
   statusTitular.style.color = "green";
-
   resultados.forEach(d => {
     const btn = document.createElement("button");
     btn.className = "list-group-item list-group-item-action";
@@ -181,19 +173,48 @@ titularInput.addEventListener("input", async () => {
       titularSelecionado = { id: d.id, ...d };
       titularInput.value = d.nome;
       listaTitulares.innerHTML = "";
-      statusTitular.textContent = "✔️ Titular selecionado";
+      statusTitular.textContent = "Titular selecionado";
     };
     listaTitulares.appendChild(btn);
   });
 });
 
-/* 💾 SALVAR ENCOMENDA */
+// Abrir scanner
+window.abrirScanner = () => {
+  const scannerDiv = document.getElementById("scanner");
+  scannerDiv.style.display = "block";
+  Quagga.init({
+    inputStream: {
+      name: "Live",
+      type: "LiveStream",
+      target: scannerDiv,
+      constraints: { facingMode },
+    },
+    decoder: {
+      readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"]
+    },
+  }, function(err) {
+    if (err) {
+      console.error(err);
+      alert("Erro ao iniciar o scanner");
+      return;
+    }
+    Quagga.start();
+  });
+  Quagga.onDetected((result) => {
+    if (result && result.codeResult && result.codeResult.code) {
+      document.getElementById("serie").value = result.codeResult.code;
+      Quagga.stop();
+      scannerDiv.style.display = "none";
+    }
+  });
+};
+
+// Salvar encomenda
 window.salvarEncomenda = async () => {
   if (!titularSelecionado) return alert("Selecione um titular válido");
   if (!fotoBase64) return alert("Tire a foto da encomenda");
-
   const codigo = Math.random().toString(36).substring(2, 8).toUpperCase();
-
   await addDoc(collection(db, "encomendas"), {
     produto: produto.value,
     serie: serie.value,
@@ -206,40 +227,37 @@ window.salvarEncomenda = async () => {
     criadoEm: new Date(),
     retiradoEm: null
   });
-
   enviarWhatsApp(codigo);
   carregarEncomendas();
 };
 
-/* 📲 WHATSAPP */
+// Enviar WhatsApp
 function enviarWhatsApp(codigo) {
   const tel = titularSelecionado.telefone.replace(/\D/g, "");
-  const msg = `📦 ENCOMENDA RECEBIDA\nProduto: ${produto.value}\n🔐 Código: ${codigo}`;
+  const msg = `ENCOMENDA RECEBIDA\nProduto: ${produto.value}\nCódigo: ${codigo}`;
   window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
-/* 📋 LISTAR ENCOMENDAS */
+// Listar encomendas
 async function carregarEncomendas() {
   listaEncomendas.innerHTML = "";
   const snap = await getDocs(collection(db, "encomendas"));
-
   snap.forEach(d => {
     const e = d.data();
     const dataRecebimento = e.criadoEm ? e.criadoEm.toDate().toLocaleString() : "—";
     const dataRetirada = e.retiradoEm ? e.retiradoEm.toDate().toLocaleString() : null;
-
     const li = document.createElement("li");
     li.className = "list-group-item";
     li.innerHTML = `
       <b>${e.produto}</b><br>
       Titular: ${e.titularNome}<br>
-      📥 Recebido em: ${dataRecebimento}<br>
-      📌 Status: ${e.status}<br>
+      Recebido em: ${dataRecebimento}<br>
+      Status: ${e.status}<br>
       ${
         e.status === "Aguardando retirada"
           ? `<input class="form-control mt-2" id="c${d.id}" placeholder="Código">
              <button class="btn btn-success btn-sm mt-2" onclick="validar('${d.id}','${e.codigo}')">Validar</button>`
-          : `✅ Retirado em: ${dataRetirada}`
+          : `Retirado em: ${dataRetirada}`
       }
       <button class="btn btn-danger btn-sm mt-2" onclick="excluir('${d.id}')">Excluir</button>
     `;
@@ -247,14 +265,14 @@ async function carregarEncomendas() {
   });
 }
 
-/* ✅ VALIDAR RETIRADA */
+// Validar retirada
 window.validar = async (id, codigo) => {
   if (document.getElementById("c" + id).value !== codigo) return alert("Código inválido");
   await updateDoc(doc(db, "encomendas", id), { status: "Retirado", retiradoEm: new Date() });
   carregarEncomendas();
 };
 
-/* 🗑 EXCLUIR */
+// Excluir
 window.excluir = async id => {
   await deleteDoc(doc(db, "encomendas", id));
   carregarEncomendas();
