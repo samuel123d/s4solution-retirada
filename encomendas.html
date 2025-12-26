@@ -206,14 +206,16 @@ titularInput.addEventListener("input", async ()=>{
   });
 });
 
-// Salvar encomenda e limpar formulário
+// Salvar encomenda, limpar formulário e abrir WhatsApp
 window.salvarEncomenda = async ()=>{
   if(!titularSelecionado) return alert("Selecione um titular válido");
   if(!fotoBase64) return alert("Tire a foto da encomenda");
 
   const codigo=Math.random().toString(36).substring(2,8).toUpperCase();
+  const produtoVal = produto.value;
+
   await addDoc(collection(db,"encomendas"),{
-    produto: produto.value,
+    produto: produtoVal,
     serie: serie.value,
     foto: fotoBase64,
     titularId: titularSelecionado.id,
@@ -242,6 +244,15 @@ window.salvarEncomenda = async ()=>{
   if(scannerAberto){ Quagga.stop(); scannerDiv.style.display="none"; scannerAberto=false; }
 
   carregarEncomendas();
+
+  // Abrir WhatsApp
+  if(titularSelecionado && titularSelecionado.telefone){
+    const mensagem = encodeURIComponent(
+      `Olá, ${titularSelecionado.nome}!\nSua encomenda de ${produtoVal} foi registrada.\nCódigo: ${codigo}`
+    );
+    const numeroWhatsApp = titularSelecionado.telefone; // Ex: "5511999999999"
+    window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, "_blank");
+  }
 };
 
 // Listar encomendas
