@@ -10,27 +10,13 @@
 body { background:#f4f6f9; }
 header { background:#111827; color:#fff; }
 .card { border:none; border-radius:14px; }
-#scanner, #camera { width:100%; height:260px; display:none; border-radius:10px; margin-top:10px; background:#000; }
+#scanner, #camera { width:100%; height:200px; display:none; border-radius:10px; margin-top:10px; background:#000; object-fit:cover; }
 .list-group-item { cursor:pointer; }
 .encomenda-foto { width:100px; height:100px; object-fit:cover; border-radius:6px; }
 @media (max-width: 576px) {
   .encomenda-foto { width:80px; height:80px; }
   .list-group-item { padding:10px; }
 }
-#camera {
-  display: none;
-  width: 100%;
-  height: 200px; /* altura menor, achatado */
-  object-fit: cover; /* mantém proporção e preenche a área */
-  border-radius: 10px;
-  margin-top: 10px;
-}
-#fotoCanvas {
-  display: none;
-  width: 100%;
-  height: auto;
-}
-
 </style>
 </head>
 <body>
@@ -77,7 +63,7 @@ header { background:#111827; color:#fff; }
 
     <div class="col-md-6">
       <label class="form-label">Foto da Encomenda</label>
-      <button class="btn btn-outline-primary w-100 mb-2" id="abrirCameraBtn">Abrir Câmera</button>
+      <button class="btn btn-outline-primary w-100 mb-2" id="toggleCameraBtn">Abrir/Fechar Câmera</button>
       <button class="btn btn-outline-success w-100 mb-2" id="tirarFotoBtn">Tirar Foto</button>
       <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
       <video id="camera" autoplay class="w-100 rounded"></video>
@@ -115,6 +101,7 @@ let titularSelecionado = null;
 let fotoBase64 = "";
 let cameraStream = null;
 let scannerAberto = false;
+let cameraAberta = false;
 let facingMode = "environment";
 
 const camera = document.getElementById("camera");
@@ -126,7 +113,7 @@ const statusTitular = document.getElementById("statusTitular");
 const listaEncomendas = document.getElementById("listaEncomendas");
 const scannerDiv = document.getElementById("scanner");
 const toggleScannerBtn = document.getElementById("toggleScannerBtn");
-const abrirCameraBtn = document.getElementById("abrirCameraBtn");
+const toggleCameraBtn = document.getElementById("toggleCameraBtn");
 const tirarFotoBtn = document.getElementById("tirarFotoBtn");
 
 // Toggle scanner
@@ -136,8 +123,8 @@ toggleScannerBtn.addEventListener("click", ()=>{
     scannerDiv.style.display="none";
     scannerAberto=false;
   } else {
-    camera.style.display="none";
-    if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); }
+    // fecha câmera de foto se aberta
+    if(cameraAberta && cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); camera.style.display="none"; cameraAberta=false; }
     scannerDiv.style.display="block";
     Quagga.init({
       inputStream:{ name:"Live", type:"LiveStream", target:scannerDiv, constraints:{facingMode} },
@@ -158,19 +145,25 @@ toggleScannerBtn.addEventListener("click", ()=>{
   }
 });
 
-// Abrir câmera para foto
-abrirCameraBtn.addEventListener("click", async ()=>{
-  scannerDiv.style.display="none";
-  if(scannerAberto){ Quagga.stop(); scannerAberto=false; }
-  if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); }
-  camera.style.display="block";
-  cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode}});
-  camera.srcObject = cameraStream;
+// Toggle câmera de foto
+toggleCameraBtn.addEventListener("click", async ()=>{
+  if(cameraAberta){
+    camera.style.display="none";
+    if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); }
+    cameraAberta=false;
+  } else {
+    // fecha scanner se aberto
+    if(scannerAberto){ Quagga.stop(); scannerDiv.style.display="none"; scannerAberto=false; }
+    camera.style.display="block";
+    cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode}});
+    camera.srcObject = cameraStream;
+    cameraAberta=true;
+  }
 });
 
 // Tirar foto
 tirarFotoBtn.addEventListener("click", ()=>{
-  if(!cameraStream) return alert("Abra a câmera primeiro!");
+  if(!cameraAberta) return alert("Abra a câmera primeiro!");
   fotoCanvas.width = camera.videoWidth;
   fotoCanvas.height = camera.videoHeight;
   fotoCanvas.getContext("2d").drawImage(camera,0,0);
