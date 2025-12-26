@@ -82,8 +82,8 @@ video { width:100%; border-radius:10px; display:none; }
 
     <div class="col-md-6">
       <label class="form-label">Foto da Encomenda</label>
-      <button class="btn btn-outline-primary w-100 mb-2" onclick="abrirCamera()">Abrir Câmera / Tirar Foto</button>
-      <button class="btn btn-outline-secondary w-100 mb-2" onclick="tirarFoto()" id="btnTirarFoto">Tirar Foto</button>
+      <button class="btn btn-outline-primary w-100 mb-2" onclick="abrirCamera()">Abrir Câmera</button>
+      <button class="btn btn-outline-secondary w-100 mb-2" onclick="tirarFoto()">Tirar Foto</button>
       <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
       <video id="camera" autoplay></video>
       <canvas id="fotoCanvas" style="display:none;"></canvas>
@@ -132,23 +132,28 @@ const statusTitular = document.getElementById("statusTitular");
 const listaEncomendas = document.getElementById("listaEncomendas");
 const scannerDiv = document.getElementById("scanner");
 
-// Função para normalizar texto
+// Normalizar texto
 function normalizarTexto(texto){
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 }
 
-// Abrir câmera para tirar foto
+// Abrir câmera
 window.abrirCamera = async () => {
-  // Fecha scanner se estiver aberto
+  // Fecha scanner
   if(scannerDiv.style.display==="block"){ Quagga.stop(); scannerDiv.style.display="none"; }
 
-  camera.style.display = "block";
+  camera.style.display="block";
   if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
-  cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode}});
-  camera.srcObject = cameraStream;
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+    camera.srcObject = cameraStream;
+  } catch(e){
+    alert("Não foi possível acessar a câmera. Verifique permissões.");
+    console.error(e);
+  }
 };
 
-// Tirar foto e fechar câmera
+// Tirar foto
 window.tirarFoto = () => {
   if(camera.style.display==="none") return alert("Abra a câmera primeiro!");
   fotoCanvas.width = camera.videoWidth;
@@ -156,9 +161,9 @@ window.tirarFoto = () => {
   fotoCanvas.getContext("2d").drawImage(camera,0,0);
   fotoBase64 = fotoCanvas.toDataURL("image/png");
   previewFoto.src = fotoBase64;
-  previewFoto.style.display = "block";
+  previewFoto.style.display="block";
   if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
-  camera.style.display = "none";
+  camera.style.display="none";
 };
 
 // Buscar titular
@@ -196,17 +201,31 @@ titularInput.addEventListener("input", async ()=>{
 
 // Abrir scanner
 window.abrirScanner = () => {
-  // Fecha câmera se estiver aberta
+  // Fecha câmera
   if(camera.style.display==="block"){ cameraStream.getTracks().forEach(t=>t.stop()); camera.style.display="none"; }
 
   scannerDiv.style.display="block";
+
   Quagga.init({
-    inputStream:{name:"Live", type:"LiveStream", target:scannerDiv, constraints:{facingMode}},
-    decoder:{readers:["code_128_reader","ean_reader","ean_8_reader","upc_reader","upc_e_reader"]}
+    inputStream:{
+      name:"Live",
+      type:"LiveStream",
+      target:scannerDiv,
+      constraints:{
+        width: {min:640},
+        height: {min:480},
+        facingMode: { ideal: "environment" } // traseira ideal
+      }
+    },
+    decoder:{
+      readers:["code_128_reader","ean_reader","ean_8_reader","upc_reader","upc_e_reader"]
+    },
+    locate: true
   }, err=>{
-    if(err){ console.error(err); alert("Erro ao iniciar o scanner"); return; }
+    if(err){ console.error("Erro Quagga:", err); alert("Erro ao iniciar o scanner."); return; }
     Quagga.start();
   });
+
   Quagga.onDetected(result=>{
     if(result && result.codeResult && result.codeResult.code){
       document.getElementById("serie").value=result.codeResult.code;
