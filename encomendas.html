@@ -10,32 +10,27 @@
 body { background:#f4f6f9; }
 header { background:#111827; color:#fff; }
 .card { border:none; border-radius:14px; }
-#scanner {
-  width:100%;
-  height:260px;
-  background:#000;
-  display:none;
-  border:2px solid #333;
-  border-radius:10px;
-  position:relative;
-  margin-top:10px;
-}
-#scanner::after {
-  content:"";
-  position:absolute;
-  top:50%;
-  left:0;
-  width:100%;
-  height:2px;
-  background:red;
-  transform:translateY(-50%);
-}
-video { width:100%; border-radius:10px; display:none; }
+#scanner, #camera { width:100%; height:260px; display:none; border-radius:10px; margin-top:10px; background:#000; }
+.list-group-item { cursor:pointer; }
 .encomenda-foto { width:100px; height:100px; object-fit:cover; border-radius:6px; }
-@media (max-width:576px){
+@media (max-width: 576px) {
   .encomenda-foto { width:80px; height:80px; }
   .list-group-item { padding:10px; }
 }
+#camera {
+  display: none;
+  width: 100%;
+  height: 200px; /* altura menor, achatado */
+  object-fit: cover; /* mantém proporção e preenche a área */
+  border-radius: 10px;
+  margin-top: 10px;
+}
+#fotoCanvas {
+  display: none;
+  width: 100%;
+  height: auto;
+}
+
 </style>
 </head>
 <body>
@@ -65,7 +60,7 @@ video { width:100%; border-radius:10px; display:none; }
       <label class="form-label">Número de Série</label>
       <div class="input-group">
         <input id="serie" class="form-control">
-        <button class="btn btn-outline-secondary" onclick="abrirScanner()">
+        <button class="btn btn-outline-secondary" id="toggleScannerBtn">
           <i class="bi bi-upc-scan"></i>
         </button>
       </div>
@@ -82,10 +77,10 @@ video { width:100%; border-radius:10px; display:none; }
 
     <div class="col-md-6">
       <label class="form-label">Foto da Encomenda</label>
-      <button class="btn btn-outline-primary w-100 mb-2" onclick="abrirCamera()">Abrir Câmera</button>
-      <button class="btn btn-outline-secondary w-100 mb-2" onclick="tirarFoto()">Tirar Foto</button>
+      <button class="btn btn-outline-primary w-100 mb-2" id="abrirCameraBtn">Abrir Câmera</button>
+      <button class="btn btn-outline-success w-100 mb-2" id="tirarFotoBtn">Tirar Foto</button>
       <img id="previewFoto" class="img-fluid rounded shadow mb-2" style="display:none;">
-      <video id="camera" autoplay></video>
+      <video id="camera" autoplay class="w-100 rounded"></video>
       <canvas id="fotoCanvas" style="display:none;"></canvas>
     </div>
 
@@ -104,7 +99,6 @@ video { width:100%; border-radius:10px; display:none; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
   authDomain: "s4solution-7466a.firebaseapp.com",
@@ -117,10 +111,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Variáveis
 let titularSelecionado = null;
 let fotoBase64 = "";
 let cameraStream = null;
+let scannerAberto = false;
 let facingMode = "environment";
 
 const camera = document.getElementById("camera");
@@ -131,109 +125,90 @@ const listaTitulares = document.getElementById("listaTitulares");
 const statusTitular = document.getElementById("statusTitular");
 const listaEncomendas = document.getElementById("listaEncomendas");
 const scannerDiv = document.getElementById("scanner");
+const toggleScannerBtn = document.getElementById("toggleScannerBtn");
+const abrirCameraBtn = document.getElementById("abrirCameraBtn");
+const tirarFotoBtn = document.getElementById("tirarFotoBtn");
 
-// Normalizar texto
-function normalizarTexto(texto){
-  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-}
-
-// Abrir câmera
-window.abrirCamera = async () => {
-  // Fecha scanner
-  if(scannerDiv.style.display==="block"){ Quagga.stop(); scannerDiv.style.display="none"; }
-
-  camera.style.display="block";
-  if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
-    camera.srcObject = cameraStream;
-  } catch(e){
-    alert("Não foi possível acessar a câmera. Verifique permissões.");
-    console.error(e);
+// Toggle scanner
+toggleScannerBtn.addEventListener("click", ()=>{
+  if(scannerAberto){
+    Quagga.stop();
+    scannerDiv.style.display="none";
+    scannerAberto=false;
+  } else {
+    camera.style.display="none";
+    if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); }
+    scannerDiv.style.display="block";
+    Quagga.init({
+      inputStream:{ name:"Live", type:"LiveStream", target:scannerDiv, constraints:{facingMode} },
+      decoder:{readers:["code_128_reader","ean_reader","ean_8_reader","upc_reader","upc_e_reader"]}
+    }, err=>{
+      if(err){ console.error(err); alert("Erro ao iniciar o scanner"); return; }
+      Quagga.start();
+      scannerAberto=true;
+    });
+    Quagga.onDetected(result=>{
+      if(result && result.codeResult && result.codeResult.code){
+        document.getElementById("serie").value=result.codeResult.code;
+        Quagga.stop();
+        scannerDiv.style.display="none";
+        scannerAberto=false;
+      }
+    });
   }
-};
+});
+
+// Abrir câmera para foto
+abrirCameraBtn.addEventListener("click", async ()=>{
+  scannerDiv.style.display="none";
+  if(scannerAberto){ Quagga.stop(); scannerAberto=false; }
+  if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); }
+  camera.style.display="block";
+  cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode}});
+  camera.srcObject = cameraStream;
+});
 
 // Tirar foto
-window.tirarFoto = () => {
-  if(camera.style.display==="none") return alert("Abra a câmera primeiro!");
+tirarFotoBtn.addEventListener("click", ()=>{
+  if(!cameraStream) return alert("Abra a câmera primeiro!");
   fotoCanvas.width = camera.videoWidth;
   fotoCanvas.height = camera.videoHeight;
   fotoCanvas.getContext("2d").drawImage(camera,0,0);
   fotoBase64 = fotoCanvas.toDataURL("image/png");
   previewFoto.src = fotoBase64;
-  previewFoto.style.display="block";
-  if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
-  camera.style.display="none";
-};
+  previewFoto.style.display = "block";
+});
+
+// Normalizar texto
+function normalizarTexto(texto){ return texto.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(); }
 
 // Buscar titular
 titularInput.addEventListener("input", async ()=>{
-  listaTitulares.innerHTML="";
-  titularSelecionado=null;
-  const valorInput=normalizarTexto(titularInput.value.trim());
+  listaTitulares.innerHTML = "";
+  titularSelecionado = null;
+  const valorInput = normalizarTexto(titularInput.value.trim());
   if(valorInput.length<2) return;
   const snap = await getDocs(collection(db,"titulares"));
-  const resultados=[];
+  const resultados = [];
   snap.forEach(d=>{
-    const nomeNormalizado=normalizarTexto(d.data().nome);
+    const nomeNormalizado = normalizarTexto(d.data().nome);
     if(nomeNormalizado.includes(valorInput)) resultados.push({id:d.id,...d.data()});
   });
   if(resultados.length===0){
-    statusTitular.textContent="Titular não cadastrado";
-    statusTitular.style.color="red";
+    statusTitular.textContent = "Titular não cadastrado";
+    statusTitular.style.color = "red";
     return;
   }
-  statusTitular.textContent="Selecione um titular";
-  statusTitular.style.color="green";
+  statusTitular.textContent = "Selecione um titular";
+  statusTitular.style.color = "green";
   resultados.forEach(d=>{
-    const btn=document.createElement("button");
+    const btn = document.createElement("button");
     btn.className="list-group-item list-group-item-action";
     btn.textContent=d.nome;
-    btn.onclick=()=>{
-      titularSelecionado={id:d.id,...d};
-      titularInput.value=d.nome;
-      listaTitulares.innerHTML="";
-      statusTitular.textContent="Titular selecionado";
-    };
+    btn.onclick=()=>{ titularSelecionado={id:d.id,...d}; titularInput.value=d.nome; listaTitulares.innerHTML=""; statusTitular.textContent="Titular selecionado"; };
     listaTitulares.appendChild(btn);
   });
 });
-
-// Abrir scanner
-window.abrirScanner = () => {
-  // Fecha câmera
-  if(camera.style.display==="block"){ cameraStream.getTracks().forEach(t=>t.stop()); camera.style.display="none"; }
-
-  scannerDiv.style.display="block";
-
-  Quagga.init({
-    inputStream:{
-      name:"Live",
-      type:"LiveStream",
-      target:scannerDiv,
-      constraints:{
-        width: {min:640},
-        height: {min:480},
-        facingMode: { ideal: "environment" } // traseira ideal
-      }
-    },
-    decoder:{
-      readers:["code_128_reader","ean_reader","ean_8_reader","upc_reader","upc_e_reader"]
-    },
-    locate: true
-  }, err=>{
-    if(err){ console.error("Erro Quagga:", err); alert("Erro ao iniciar o scanner."); return; }
-    Quagga.start();
-  });
-
-  Quagga.onDetected(result=>{
-    if(result && result.codeResult && result.codeResult.code){
-      document.getElementById("serie").value=result.codeResult.code;
-      Quagga.stop();
-      scannerDiv.style.display="none";
-    }
-  });
-};
 
 // Salvar encomenda
 window.salvarEncomenda = async ()=>{
@@ -258,11 +233,11 @@ window.salvarEncomenda = async ()=>{
 // Listar encomendas
 async function carregarEncomendas(){
   listaEncomendas.innerHTML="";
-  const snap=await getDocs(collection(db,"encomendas"));
+  const snap = await getDocs(collection(db,"encomendas"));
   snap.forEach(d=>{
     const e=d.data();
-    const dataRecebimento=e.criadoEm?e.criadoEm.toDate().toLocaleString():"—";
-    const dataRetirada=e.retiradoEm?e.retiradoEm.toDate().toLocaleString():null;
+    const dataRecebimento = e.criadoEm?e.criadoEm.toDate().toLocaleString():"—";
+    const dataRetirada = e.retiradoEm?e.retiradoEm.toDate().toLocaleString():null;
     const li=document.createElement("li");
     li.className="list-group-item";
     li.innerHTML=`
