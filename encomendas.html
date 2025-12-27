@@ -270,6 +270,7 @@ async function carregarEncomendas(){
         <img src="${e.foto}" class="encomenda-foto" alt="Foto Encomenda">
         <div class="flex-fill">
           <b>${e.produto}</b><br>
+          Número de Série: <strong>${e.serie || "—"}</strong><br>
           Titular: ${e.titularNome}<br>
           Recebido em: ${dataRecebimento}<br>
           Status: ${e.status}<br>

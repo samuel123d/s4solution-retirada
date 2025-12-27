@@ -20,9 +20,9 @@ header a:hover { color:#60a5fa; }
   object-fit:cover;
   border-radius:6px;
 }
-
-@media (max-width:576px){
-  .encomenda-foto{width:80px;height:80px;}
+@media (max-width: 576px) {
+  .encomenda-foto { width:80px; height:80px; }
+  .list-group-item { padding:10px; }
 }
 </style>
 </head>
@@ -156,6 +156,7 @@ async function listarTitulares(){
               <img src="${e.foto}" class="encomenda-foto">
               <div class="flex-fill">
                 <b>${e.produto}</b><br>
+                Número de Série: <strong>${e.serie || "—"}</strong><br>
                 Recebido em: ${recebido}<br>
                 Status: ${e.status}<br>
 
