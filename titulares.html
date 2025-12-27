@@ -1,185 +1,244 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>S4Solution | Titulares</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-</head>
+<meta charset="UTF-8">
+<title>S4SOLUTION • Titulares</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <style>
 body { background:#f4f6f9; }
 header { background:#111827; color:#fff; }
-.card { border:none; border-radius:14px; }
-#scanner { width:100%; height:260px; background:#000; display:none; }
-.list-group-item { cursor:pointer; }
-video { width:100%; border-radius:10px; }
-input { margin-bottom:10px; padding:8px; border-radius:6px; border:1px solid #ccc; width:100%; }
-button { padding:8px 12px; border-radius:6px; }
+body { background:#f4f6f9; font-family: Arial, sans-serif; }
+header { background:#111827; color:#fff; }
+header a { color:#fff; text-decoration:none; transition:0.3s; }
+header a:hover { color:#60a5fa; }
+.encomenda-foto {
+  width:100px;
+  height:100px;
+  object-fit:cover;
+  border-radius:6px;
+}
+
+@media (max-width:576px){
+  .encomenda-foto{width:80px;height:80px;}
+}
 </style>
+</head>
+
 <body>
 
-<header class="py-2 mb-2">
-  <div class="container my-3">
-    <h2 class="fw-bold">S4SOLUTION</h2>
-    <small>Sistema de Controle de Encomendas</small>
+<header class="py-3 mb-4">
+  <div class="container d-flex justify-content-between align-items-center">
+    <h2 class="fw-bold mb-0">S4SOLUTION</h2>
+    <nav class="d-flex gap-3">
+      <a href="index.html">Início</a>
+      <a href="encomendas.html">Encomendas</a>
+      <a href="titulares.html">Titulares</a>
+    </nav>
   </div>
-  <nav class="container mt-3 mb-2 d-flex gap-4">
-    <a href="index.html">Início</a>
-    <a href="./encomendas.html">Encomendas</a>
-    <a href="./titulares.html">Titulares</a>
-  </nav>
 </header>
 
 <main class="container">
-  <h2>Cadastro de Titulares</h2>
+
+<!-- CADASTRO -->
+<div class="card shadow p-4 mb-4">
+  <h5>Cadastro de Titulares</h5>
 
   <form id="formTitular">
-    <input type="text" name="nome" placeholder="Nome do titular" required>
-    <input type="text" name="bloco" placeholder="Bloco" required>
-    <input type="number" name="casa" placeholder="Casa/Apartamento" required min="1">
-
-    <!-- Telefone simples sem toggle -->
-    <input type="text" id="telefone" name="telefone" placeholder="Telefone (somente números) - EX: 849998-1122" required>
-
-    <button type="submit">Salvar</button>
+    <input class="form-control mb-2" name="nome" placeholder="Nome" required>
+    <input class="form-control mb-2" name="bloco" placeholder="Bloco" required>
+    <input class="form-control mb-2" name="casa" placeholder="Casa" required>
+    <input class="form-control mb-2" id="telefone" placeholder="Telefone (somente números) - 558499988776" required>
+    <button class="btn btn-primary w-100">Salvar</button>
   </form>
+</div>
 
-  <h3 class="mt-4">Lista de Titulares</h3>
-  <ul id="listaTitulares" class="list-group"></ul>
+<!-- LISTA -->
+<div class="card shadow p-4">
+  <h5>Lista de Titulares</h5>
+  <ul id="listaTitulares" class="list-group mt-3"></ul>
+</div>
+
 </main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  query,
-  where
+  getFirestore, collection, addDoc, getDocs,
+  deleteDoc, doc, updateDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* 🔥 FIREBASE */
+/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
   authDomain: "s4solution-7466a.firebaseapp.com",
   projectId: "s4solution-7466a",
   storageBucket: "s4solution-7466a.firebasestorage.app",
   messagingSenderId: "365611705854",
-  appId: "1:365611705854:web:054b6de3849793b1294caf",
-  measurementId: "G-HEP3WV471B"
+  appId: "1:365611705854:web:054b6de3849793b1294caf"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const lista = document.getElementById("listaTitulares");
+const listaTitulares = document.getElementById("listaTitulares");
 const form = document.getElementById("formTitular");
 const telefoneInput = document.getElementById("telefone");
 
-/* 🔹 LISTAR TITULARES */
-async function listarTitulares() {
-  lista.innerHTML = "";
-  const titularesSnap = await getDocs(collection(db, "titulares"));
+/* LISTAR TITULARES */
+async function listarTitulares(){
+  listaTitulares.innerHTML="";
+  const snap = await getDocs(collection(db,"titulares"));
 
-  titularesSnap.forEach(docu => {
+  snap.forEach(docu=>{
     const t = docu.data();
 
-    const li = document.createElement("li");
-    li.className = "list-group-item mb-3";
-    li.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center">
+    const li=document.createElement("li");
+    li.className="list-group-item mb-3";
+
+    li.innerHTML=`
+      <div class="d-flex justify-content-between align-items-start">
         <div>
-          <strong>${t.nome}</strong><br>
+          <b>${t.nome}</b><br>
           Bloco ${t.bloco} • Casa ${t.casa}<br>
           📞 ${t.telefone}
         </div>
-        <button class="btn btn-sm btn-outline-primary">
-          Ver encomendas
-        </button>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm">Ver encomendas</button>
+          <button class="btn btn-outline-danger btn-sm"
+            onclick="excluirTitular('${docu.id}','${t.nome}')">
+            Excluir titular
+          </button>
+        </div>
       </div>
 
-      <ul class="list-group mt-3 d-none" id="enc-${docu.id}">
-        <li class="list-group-item text-muted">Carregando...</li>
-      </ul>
-
-      <button class="btn btn-sm btn-danger mt-2"
-        onclick="deletar('${docu.id}')">
-        🗑️ Excluir Titular
-      </button>
+      <ul class="list-group mt-3 d-none" id="enc-${docu.id}"></ul>
     `;
 
-    const btn = li.querySelector("button.btn-outline-primary");
+    const btn = li.querySelector(".btn-outline-primary");
     const listaEnc = li.querySelector(`#enc-${docu.id}`);
 
-    btn.addEventListener("click", async () => {
-      if (!listaEnc.classList.contains("d-none")) {
+    btn.onclick = async ()=>{
+      if(!listaEnc.classList.contains("d-none")){
         listaEnc.classList.add("d-none");
-        btn.textContent = "Ver encomendas";
+        btn.textContent="Ver encomendas";
         return;
       }
 
-      btn.textContent = "Ocultar encomendas";
+      btn.textContent="Ocultar encomendas";
       listaEnc.classList.remove("d-none");
-      listaEnc.innerHTML = "";
+      listaEnc.innerHTML="<li class='list-group-item text-muted'>Carregando...</li>";
 
-      const q = query(
-        collection(db, "encomendas"),
-        where("titularId", "==", docu.id),
-        where("status", "==", "Retirado")
+      const q=query(
+        collection(db,"encomendas"),
+        where("titularId","==",docu.id)
       );
 
-      const encSnap = await getDocs(q);
+      const encSnap=await getDocs(q);
+      listaEnc.innerHTML="";
 
-      if (encSnap.empty) {
-        listaEnc.innerHTML = `<li class="list-group-item text-muted">Nenhuma encomenda retirada</li>`;
+      if(encSnap.empty){
+        listaEnc.innerHTML="<li class='list-group-item text-muted'>Nenhuma encomenda</li>";
         return;
       }
 
-      encSnap.forEach(e => {
-        const enc = e.data();
-        listaEnc.innerHTML += `
+      encSnap.forEach(d=>{
+        const e=d.data();
+        const recebido=e.criadoEm?e.criadoEm.toDate().toLocaleString():"—";
+        const retirado=e.retiradoEm?e.retiradoEm.toDate().toLocaleString():null;
+
+        listaEnc.innerHTML+=`
           <li class="list-group-item">
-            📦 <strong>${enc.produto}</strong><br>
-            📅 Retirado em: ${enc.retiradoEm ? enc.retiradoEm.toDate().toLocaleString() : "—"}
+            <div class="d-flex flex-column flex-md-row gap-3">
+              <img src="${e.foto}" class="encomenda-foto">
+              <div class="flex-fill">
+                <b>${e.produto}</b><br>
+                Recebido em: ${recebido}<br>
+                Status: ${e.status}<br>
+
+                ${
+                  e.status==="Aguardando retirada"
+                  ? `<input class="form-control mt-2" id="c${d.id}" placeholder="Código">
+                     <button class="btn btn-success btn-sm mt-2"
+                       onclick="validar('${d.id}','${e.codigo}')">Validar</button>`
+                  : `Retirado em: ${retirado}`
+                }
+
+                <button class="btn btn-danger btn-sm mt-2"
+                  onclick="excluirEncomenda('${d.id}')">Excluir encomenda</button>
+              </div>
+            </div>
           </li>
         `;
       });
-    });
+    };
 
-    lista.appendChild(li);
+    listaTitulares.appendChild(li);
   });
 }
 
-/* 🔹 CADASTRAR TITULAR com validação de número real */
-form.addEventListener("submit", async e => {
+/* CADASTRAR TITULAR */
+form.onsubmit=async e=>{
   e.preventDefault();
 
-  const telefone = telefoneInput.value.trim();
-
-  // Apenas números, mínimo 10 e máximo 11 dígitos (DDD + telefone)
-  if (!/^\d{10,11}$/.test(telefone)) {
-    alert("Digite um número de telefone válido (somente números, 10 ou 11 dígitos).");
+  if(!/^\d{10,18}$/.test(telefoneInput.value)){
+    alert("Telefone inválido");
     return;
   }
 
-  await addDoc(collection(db, "titulares"), {
-    nome: form.nome.value,
-    bloco: form.bloco.value,
-    casa: form.casa.value,
-    telefone: telefone
+  await addDoc(collection(db,"titulares"),{
+    nome:form.nome.value,
+    bloco:form.bloco.value,
+    casa:form.casa.value,
+    telefone:telefoneInput.value
   });
 
   form.reset();
   listarTitulares();
-});
+};
 
-/* 🔹 EXCLUIR TITULAR */
-window.deletar = async id => {
-  await deleteDoc(doc(db, "titulares", id));
+/* VALIDAR ENCOMENDA */
+window.validar=async(id,codigo)=>{
+  if(document.getElementById("c"+id).value!==codigo){
+    alert("Código inválido");
+    return;
+  }
+  await updateDoc(doc(db,"encomendas",id),{
+    status:"Retirado",
+    retiradoEm:new Date()
+  });
+  listarTitulares();
+};
+
+/* EXCLUIR ENCOMENDA */
+window.excluirEncomenda=async id=>{
+  if(!confirm("Excluir esta encomenda?")) return;
+  await deleteDoc(doc(db,"encomendas",id));
+  listarTitulares();
+};
+
+/* EXCLUIR TITULAR + ENCOMENDAS */
+window.excluirTitular=async(titularId,nome)=>{
+  const ok=confirm(
+    `Excluir o titular "${nome}"?\n\n`+
+    `Todas as encomendas desse titular também serão removidas.`
+  );
+  if(!ok) return;
+
+  const q=query(
+    collection(db,"encomendas"),
+    where("titularId","==",titularId)
+  );
+  const snap=await getDocs(q);
+
+  for(const d of snap.docs){
+    await deleteDoc(doc(db,"encomendas",d.id));
+  }
+
+  await deleteDoc(doc(db,"titulares",titularId));
   listarTitulares();
 };
 
