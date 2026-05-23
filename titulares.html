@@ -1,74 +1,42 @@
-
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
 <title>S4SOLUTION • Titulares</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body{
-  background:#f4f6f9;
-  font-family:Arial,sans-serif;
-}
-
-header{
-  background:#111827;
-  color:#fff;
-}
-
-header a{
-  color:#fff;
-  text-decoration:none;
-  transition:.3s;
-}
-
-header a:hover{
-  color:#60a5fa;
-}
-
-.card{
-  border:none;
-  border-radius:14px;
-}
-
-.btn{
-  border-radius:10px;
-}
-
-.encomenda-foto{
+body { background:#f4f6f9; }
+header { background:#111827; color:#fff; }
+body { background:#f4f6f9; font-family: Arial, sans-serif; }
+header { background:#111827; color:#fff; }
+header a { color:#fff; text-decoration:none; transition:0.3s; }
+header a:hover { color:#60a5fa; }
+.encomenda-foto {
   width:100px;
   height:100px;
   object-fit:cover;
-  border-radius:8px;
+  border-radius:6px;
 }
-
-@media(max-width:576px){
-
-  .encomenda-foto{
-    width:80px;
-    height:80px;
-  }
-
-  .list-group-item{
-    padding:10px;
-  }
-
+@media (max-width: 576px) {
+  .encomenda-foto { width:80px; height:80px; }
+  .list-group-item { padding:10px; }
 }
 </style>
 </head>
-@@ -31,219 +64,462 @@
+
+<body>
 
 <header class="py-3 mb-4">
   <div class="container d-flex justify-content-between align-items-center">
-
     <h2 class="fw-bold mb-0">S4SOLUTION</h2>
-
     <nav class="d-flex gap-3">
       <a href="index.html">Início</a>
       <a href="encomendas.html">Encomendas</a>
       <a href="titulares.html">Titulares</a>
     </nav>
-
   </div>
 </header>
 
@@ -76,439 +44,207 @@ header a:hover{
 
 <!-- CADASTRO -->
 <div class="card shadow p-4 mb-4">
-
   <h5>Cadastro de Titulares</h5>
 
   <form id="formTitular">
-
-    <input class="form-control mb-2"
-    name="nome"
-    placeholder="Nome"
-    required>
-
-    <input class="form-control mb-2"
-    name="bloco"
-    placeholder="Bloco"
-    required>
-
-    <input class="form-control mb-2"
-    name="casa"
-    placeholder="Casa"
-    required>
-
-    <input class="form-control mb-2"
-    id="telefone"
-    placeholder="Telefone Ex: 5584999999999"
-    required>
-
-    <button class="btn btn-primary w-100">
-      Salvar
-    </button>
-
+    <input class="form-control mb-2" name="nome" placeholder="Nome" required>
+    <input class="form-control mb-2" name="bloco" placeholder="Bloco" required>
+    <input class="form-control mb-2" name="casa" placeholder="Casa" required>
+    <input class="form-control mb-2" id="telefone" placeholder="Telefone (somente números) - 558499988776" required>
+    <button class="btn btn-primary w-100">Salvar</button>
   </form>
-
 </div>
 
 <!-- LISTA -->
 <div class="card shadow p-4">
-
   <h5>Lista de Titulares</h5>
-
-  <ul id="listaTitulares"
-  class="list-group mt-3"></ul>
-
+  <ul id="listaTitulares" class="list-group mt-3"></ul>
 </div>
 
 </main>
 
 <script type="module">
-
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  updateDoc,
-  query,
-  where
-}
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  getFirestore, collection, addDoc, getDocs,
+  deleteDoc, doc, updateDoc, query, where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* FIREBASE */
 const firebaseConfig = {
-
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_STORAGE",
-  messagingSenderId: "SEU_SENDER_ID",
-  appId: "SEU_APP_ID"
-
+  apiKey: "AIzaSyDQVdWTpDvXZqgawxnrxRWtG7HD02VxKDI",
+  authDomain: "s4solution-7466a.firebaseapp.com",
+  projectId: "s4solution-7466a",
+  storageBucket: "s4solution-7466a.firebasestorage.app",
+  messagingSenderId: "365611705854",
+  appId: "1:365611705854:web:054b6de3849793b1294caf"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const listaTitulares =
-document.getElementById("listaTitulares");
-
-const form =
-document.getElementById("formTitular");
-
-const telefoneInput =
-document.getElementById("telefone");
-
-/* SEGURANÇA */
-function limpar(texto){
-
-  return texto
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-
-}
+const listaTitulares = document.getElementById("listaTitulares");
+const form = document.getElementById("formTitular");
+const telefoneInput = document.getElementById("telefone");
 
 /* LISTAR TITULARES */
 async function listarTitulares(){
-
-  listaTitulares.innerHTML = "";
-
-  const snap =
-  await getDocs(collection(db,"titulares"));
+  listaTitulares.innerHTML="";
+  const snap = await getDocs(collection(db,"titulares"));
 
   snap.forEach(docu=>{
-
     const t = docu.data();
 
-    const li =
-    document.createElement("li");
+    const li=document.createElement("li");
+    li.className="list-group-item mb-3";
 
-    li.className =
-    "list-group-item mb-3";
-
-    li.innerHTML = `
-
-      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-
-
-
+    li.innerHTML=`
+      <div class="d-flex justify-content-between align-items-start">
         <div>
-
-          <b>${limpar(t.nome)}</b><br>
-
-          Bloco ${limpar(t.bloco)}
-          • Casa ${limpar(t.casa)}<br>
-
-          📞 ${limpar(t.telefone)}
-
+          <b>${t.nome}</b><br>
+          Bloco ${t.bloco} • Casa ${t.casa}<br>
+          📞 ${t.telefone}
         </div>
 
-        <div class="d-flex gap-2 flex-wrap">
-
-          <button class="btn btn-outline-primary btn-sm btnVer">
-            Ver encomendas
-          </button>
-
-          <button class="btn btn-outline-danger btn-sm btnExcluirTitular">
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm">Ver encomendas</button>
+          <button class="btn btn-outline-danger btn-sm"
+            onclick="excluirTitular('${docu.id}','${t.nome}')">
             Excluir titular
           </button>
-
         </div>
-
       </div>
 
-      <ul class="list-group mt-3 d-none"
-      id="enc-${docu.id}"></ul>
-
+      <ul class="list-group mt-3 d-none" id="enc-${docu.id}"></ul>
     `;
 
-    const btnVer =
-    li.querySelector(".btnVer");
+    const btn = li.querySelector(".btn-outline-primary");
+    const listaEnc = li.querySelector(`#enc-${docu.id}`);
 
-    const btnExcluirTitular =
-    li.querySelector(".btnExcluirTitular");
-
-    const listaEnc =
-    li.querySelector(`#enc-${docu.id}`);
-
-    /* EXCLUIR TITULAR */
-    btnExcluirTitular.addEventListener("click", async()=>{
-
-      const ok = confirm(
-        `Excluir ${t.nome}?\n\nTodas as encomendas serão removidas.`
-      );
-
-      if(!ok) return;
-
-      const q =
-      query(
-        collection(db,"encomendas"),
-        where("titularId","==",docu.id)
-      );
-
-      const encomendas =
-      await getDocs(q);
-
-      for(const d of encomendas.docs){
-
-        await deleteDoc(
-          doc(db,"encomendas",d.id)
-        );
-
-      }
-
-      await deleteDoc(
-        doc(db,"titulares",docu.id)
-      );
-
-      listarTitulares();
-
-    });
-
-    /* VER ENCOMENDAS */
-    btnVer.addEventListener("click", async()=>{
-
-
+    btn.onclick = async ()=>{
       if(!listaEnc.classList.contains("d-none")){
-
         listaEnc.classList.add("d-none");
-        btnVer.textContent="Ver encomendas";
+        btn.textContent="Ver encomendas";
         return;
-
       }
 
-      btnVer.disabled = true;
-      btnVer.textContent = "Carregando...";
-
+      btn.textContent="Ocultar encomendas";
       listaEnc.classList.remove("d-none");
+      listaEnc.innerHTML="<li class='list-group-item text-muted'>Carregando...</li>";
 
-
-      const q =
-      query(
+      const q=query(
         collection(db,"encomendas"),
         where("titularId","==",docu.id)
       );
 
-      const encSnap =
-      await getDocs(q);
-
-      listaEnc.innerHTML = "";
+      const encSnap=await getDocs(q);
+      listaEnc.innerHTML="";
 
       if(encSnap.empty){
-
-        listaEnc.innerHTML = `
-          <li class="list-group-item text-muted">
-            Nenhuma encomenda
-          </li>
-        `;
-
-        btnVer.disabled = false;
-        btnVer.textContent = "Ocultar encomendas";
-
+        listaEnc.innerHTML="<li class='list-group-item text-muted'>Nenhuma encomenda</li>";
         return;
-
       }
 
-      let html = "";
-
       encSnap.forEach(d=>{
+        const e=d.data();
+        const recebido=e.criadoEm?e.criadoEm.toDate().toLocaleString():"—";
+        const retirado=e.retiradoEm?e.retiradoEm.toDate().toLocaleString():null;
 
-
-
-
-        const e = d.data();
-
-        const recebido =
-        e.criadoEm
-        ? e.criadoEm.toDate().toLocaleString()
-        : "—";
-
-        const retirado =
-        e.retiradoEm
-        ? e.retiradoEm.toDate().toLocaleString()
-        : null;
-
-        /* WHATSAPP */
-        const mensagem = `Olá, ${t.nome}!
-Sua encomenda de ${e.produto} foi registrada.
-Código: ${e.codigo}`;
-
-        const whatsapp =
-        `https://wa.me/${t.telefone}?text=${encodeURIComponent(mensagem)}`;
-
-        html += `
-
+        listaEnc.innerHTML+=`
           <li class="list-group-item">
-
             <div class="d-flex flex-column flex-md-row gap-3">
-
-              <img src="${e.foto}"
-              class="encomenda-foto">
-
+              <img src="${e.foto}" class="encomenda-foto">
               <div class="flex-fill">
-
-                <b>${limpar(e.produto)}</b><br>
-
-                Número de Série:
-                <strong>${e.serie || "—"}</strong><br>
-
-                Recebido em:
-                ${recebido}<br>
-
-                Status:
-                ${e.status}<br>
+                <b>${e.produto}</b><br>
+                Número de Série: <strong>${e.serie || "—"}</strong><br>
+                Recebido em: ${recebido}<br>
+                Status: ${e.status}<br>
 
                 ${
                   e.status==="Aguardando retirada"
-
-                  ?
-
-                  `
-                  <input
-                  class="form-control mt-2 codigoInput"
-                  data-id="${d.id}"
-                  data-codigo="${e.codigo}"
-                  placeholder="Código">
-
-                  <button
-                  class="btn btn-success btn-sm mt-2 btnValidar"
-                  data-id="${d.id}"
-                  data-codigo="${e.codigo}">
-                    Validar
-                  </button>
-                  `
-
-                  :
-
-                  `Retirado em: ${retirado}`
-
+                  ? `<input class="form-control mt-2" id="c${d.id}" placeholder="Código">
+                     <button class="btn btn-success btn-sm mt-2"
+                       onclick="validar('${d.id}','${e.codigo}')">Validar</button>`
+                  : `Retirado em: ${retirado}`
                 }
 
-                <div class="d-flex gap-2 flex-wrap mt-2">
-
-                  <a href="${whatsapp}"
-                  target="_blank"
-                  class="btn btn-success btn-sm">
-                    WhatsApp
-                  </a>
-
-                  <button
-                  class="btn btn-danger btn-sm btnExcluirEnc"
-                  data-id="${d.id}">
-                    Excluir encomenda
-                  </button>
-
-                </div>
-
+                <button class="btn btn-danger btn-sm mt-2"
+                  onclick="excluirEncomenda('${d.id}')">Excluir encomenda</button>
               </div>
-
             </div>
-
           </li>
-
         `;
-
       });
-
-      listaEnc.innerHTML = html;
-
-      /* VALIDAR */
-      listaEnc
-      .querySelectorAll(".btnValidar")
-      .forEach(btn=>{
-
-        btn.addEventListener("click", async()=>{
-
-          const id =
-          btn.dataset.id;
-
-          const codigo =
-          btn.dataset.codigo;
-
-          const input =
-          listaEnc.querySelector(
-            `.codigoInput[data-id="${id}"]`
-          );
-
-          if(input.value !== codigo){
-
-            alert("Código inválido");
-            return;
-
-          }
-
-          await updateDoc(
-            doc(db,"encomendas",id),
-            {
-              status:"Retirado",
-              retiradoEm:new Date()
-            }
-          );
-
-          listarTitulares();
-
-        });
-
-      });
-
-      /* EXCLUIR ENCOMENDA */
-      listaEnc
-      .querySelectorAll(".btnExcluirEnc")
-      .forEach(btn=>{
-
-        btn.addEventListener("click", async()=>{
-
-          const id =
-          btn.dataset.id;
-
-          const ok =
-          confirm("Excluir encomenda?");
-
-          if(!ok) return;
-
-          await deleteDoc(
-            doc(db,"encomendas",id)
-          );
-
-          listarTitulares();
-
-        });
-
-      });
-
-      btnVer.disabled = false;
-      btnVer.textContent = "Ocultar encomendas";
-
-    });
+    };
 
     listaTitulares.appendChild(li);
-
   });
-
 }
 
-/* CADASTRAR */
-form.addEventListener("submit", async e=>{
-
+/* CADASTRAR TITULAR */
+form.onsubmit=async e=>{
   e.preventDefault();
 
-  if(!/^\d{12,13}$/.test(telefoneInput.value)){
-
+  if(!/^\d{10,18}$/.test(telefoneInput.value)){
     alert("Telefone inválido");
     return;
+  }
 
+  await addDoc(collection(db,"titulares"),{
+    nome:form.nome.value,
+    bloco:form.bloco.value,
+    casa:form.casa.value,
+    telefone:telefoneInput.value
+  });
 
+  form.reset();
+  listarTitulares();
+};
 
+/* VALIDAR ENCOMENDA */
+window.validar=async(id,codigo)=>{
+  if(document.getElementById("c"+id).value!==codigo){
+    alert("Código inválido");
+    return;
+  }
+  await updateDoc(doc(db,"encomendas",id),{
+    status:"Retirado",
+    retiradoEm:new Date()
+  });
+  listarTitulares();
+};
 
+/* EXCLUIR ENCOMENDA */
+window.excluirEncomenda=async id=>{
+  if(!confirm("Excluir esta encomenda?")) return;
+  await deleteDoc(doc(db,"encomendas",id));
+  listarTitulares();
+};
 
+/* EXCLUIR TITULAR + ENCOMENDAS */
+window.excluirTitular=async(titularId,nome)=>{
+  const ok=confirm(
+    `Excluir o titular "${nome}"?\n\n`+
+    `Todas as encomendas desse titular também serão removidas.`
+  );
+  if(!ok) return;
 
+  const q=query(
+    collection(db,"encomendas"),
+    where("titularId","==",titularId)
+  );
+  const snap=await getDocs(q);
 
+  for(const d of snap.docs){
+    await deleteDoc(doc(db,"encomendas",d.id));
+  }
 
+  await deleteDoc(doc(db,"titulares",titularId));
+  listarTitulares();
+};
 
+listarTitulares();
+</script>
 
-
-
+</body>
+</html>
