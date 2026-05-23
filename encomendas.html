@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
 <meta charset="UTF-8">
 <title>S4SOLUTION • Encomendas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -248,10 +245,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let titularSelecionado = null;
-let fotoBase64 = "";
-let cameraStream = null;
-let scannerAberto = false;
+@@ -106,201 +255,585 @@ <h5><i class="bi bi-list"></i> Encomendas</h5>
 let cameraAberta = false;
 let facingMode = "environment";
 
@@ -486,6 +480,11 @@ titularInput.addEventListener("input", async()=>{
     titularInput.value.trim()
   );
 
+
+
+
+
+
   if(valorInput.length<2) return;
 
   const snap =
@@ -639,7 +638,16 @@ window.salvarEncomenda = async()=>{
 
   titularSelecionado=null;
 
+
+
+
+
+
+
+
+
   /* FECHAR CAMERA */
+
 
   if(cameraAberta && cameraStream){
 
