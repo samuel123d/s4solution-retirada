@@ -248,12 +248,26 @@ window.salvarEncomenda = async ()=>{
   carregarEncomendas();
 
   // Abrir WhatsApp com código
-  if(titularVal && titularVal.telefone){
-    const mensagem = encodeURIComponent(`Olá, ${titularVal.nome}!\nSua encomenda de ${produtoVal} foi registrada.\nCódigo: ${codigo}`);
-    const numeroWhatsApp = titularVal.telefone; // ex: 5511999999999
-    window.open(`https://wa.me/${numeroWhatsApp}?text=${mensagem}`, "_blank");
-  }
-};
+  // Abrir WhatsApp com código
+if(titularVal && titularVal.telefone){
+
+  const mensagem =
+`Olá, ${titularVal.nome}!
+
+Sua encomenda de ${produtoVal} foi registrada.
+
+Código: ${codigo}`;
+
+  const numeroWhatsApp =
+  titularVal.telefone.replace(/\D/g,"");
+
+  const linkWhatsapp =
+  `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`;
+
+  console.log(linkWhatsapp);
+
+  window.open(linkWhatsapp, "_blank");
+}
 
 // Listar encomendas
 async function carregarEncomendas(){
@@ -304,4 +318,4 @@ carregarEncomendas();
 </script>
 </body>
 </html>
-tinha mandado o errado é esse aqui que manda para o watzap
+
