@@ -1,7 +1,4 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
+
 <title>S4SOLUTION • Titulares</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -59,8 +56,7 @@ header a:hover{
 }
 </style>
 </head>
-
-<body>
+@@ -31,219 +64,462 @@
 
 <header class="py-3 mb-4">
   <div class="container d-flex justify-content-between align-items-center">
@@ -198,6 +194,8 @@ async function listarTitulares(){
 
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
 
+
+
         <div>
 
           <b>${limpar(t.nome)}</b><br>
@@ -274,6 +272,7 @@ async function listarTitulares(){
     /* VER ENCOMENDAS */
     btnVer.addEventListener("click", async()=>{
 
+
       if(!listaEnc.classList.contains("d-none")){
 
         listaEnc.classList.add("d-none");
@@ -286,6 +285,7 @@ async function listarTitulares(){
       btnVer.textContent = "Carregando...";
 
       listaEnc.classList.remove("d-none");
+
 
       const q =
       query(
@@ -316,6 +316,9 @@ async function listarTitulares(){
       let html = "";
 
       encSnap.forEach(d=>{
+
+
+
 
         const e = d.data();
 
@@ -498,29 +501,14 @@ form.addEventListener("submit", async e=>{
     alert("Telefone inválido");
     return;
 
-  }
 
-  await addDoc(
-    collection(db,"titulares"),
-    {
 
-      nome:form.nome.value,
-      bloco:form.bloco.value,
-      casa:form.casa.value,
-      telefone:telefoneInput.value
 
-    }
-  );
 
-  form.reset();
 
-  listarTitulares();
 
-});
 
-listarTitulares();
 
-</script>
 
-</body>
-</html>
+
+
